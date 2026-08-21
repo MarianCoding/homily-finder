@@ -1,0 +1,26 @@
+[
+  {
+    "id": "barron",
+    "name": "Bishop Barron — Sunday Sermons",
+    "feed": "https://feed.podbean.com/wordonfire/feed.xml",
+    "kind": "sunday"
+  },
+  {
+    "id": "schmitz",
+    "name": "Fr. Mike Schmitz — Sunday Homilies",
+    "feed": "https://feeds.fireside.fm/fathermikehomilies/rss",
+    "kind": "sunday"
+  },
+  {
+    "id": "pillar",
+    "name": "The Pillar — Sunday School",
+    "appleId": "1648535494",
+    "kind": "sunday"
+  },
+  {
+    "id": "lbs",
+    "name": "Logical Bible Study — Daily Gospel Exegesis",
+    "appleId": "1487384040",
+    "kind": "daily"
+  }
+]
