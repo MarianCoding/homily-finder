@@ -5,141 +5,159 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lectionary Finder — homilies &amp; commentary by liturgical date</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --paper:#F7F6F2; --ink:#1C1A17; --ink-2:#4F4A43; --rule:#D9D5CC; --card:#FFFFFF;
-    --green:#2E6B3F; --violet:#5B3A7E; --red:#A3262B; --gold:#B8932F; --rose:#C97C8F; --white:#B8932F;
-    --season:var(--green);
-    --display:"Cormorant Garamond",Georgia,serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --bg:#f2f2f3; --ink:#1d1f20; --muted:#5d5d60; --faint:#7a7a7d;
+    --line:#b7b7ba; --line-soft:#d4d4d7;
+    --accent:#5980a6; --accent-deep:#416180; --accent-dark:#1d2d3d; --accent-tint:#eef6ff; --accent-border:#b5d9fd;
+    --green:#2E6B3F; --violet:#5B3A7E; --red:#9E2B2F; --gold:#A98A2F; --rose:#C97C8F;
+    --heading:"Barlow Condensed",system-ui,sans-serif; --body:"Barlow",system-ui,sans-serif;
   }
   *{box-sizing:border-box}
-  html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
-  a{color:inherit}
-  .page{max-width:1180px;margin:0 auto;padding:32px 24px 80px}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+  a{color:var(--accent-deep)} a:hover{color:var(--accent-dark)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  ::selection{background:#d6ebff}
+  b{font-weight:600}
+
+  /* blueprint frame */
+  .blueprint{position:relative;border:1px solid var(--line)}
+  .corner{position:absolute;width:11px;height:11px;pointer-events:none;color:var(--accent)}
+  .corner::before,.corner::after{content:"";position:absolute;background:currentColor}
+  .corner::before{left:5px;top:0;width:1px;height:11px}
+  .corner::after{top:5px;left:0;width:11px;height:1px}
+  .tl{top:-6px;left:-6px}.tr{top:-6px;right:-6px}.bl{bottom:-6px;left:-6px}.br{bottom:-6px;right:-6px}
+
+  /* nav */
+  .nav{display:flex;align-items:center;gap:12px;padding:14px 24px;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+  .nav-brand{font-family:var(--heading);font-weight:600;font-size:20px;text-transform:uppercase;letter-spacing:.04em}
+  .nav .spacer{flex:1 1 auto}
+  .nav a{font-size:13px}
+
+  .page{max-width:1140px;margin:0 auto;padding:0 22px 64px}
 
   /* hero */
-  .hero{display:grid;grid-template-columns:28px 1fr;gap:28px;margin-bottom:36px}
-  .ribbon{background:var(--season);border-radius:0 0 4px 4px;position:relative;min-height:100%;transition:background .5s ease}
-  .ribbon:after{content:"";position:absolute;left:0;right:0;bottom:-14px;border-left:14px solid var(--season);border-right:14px solid var(--season);border-bottom:14px solid transparent;transition:border-color .5s ease}
-  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);margin:0 0 8px}
-  h1{font-family:var(--display);font-weight:500;font-size:clamp(40px,6vw,72px);line-height:.98;margin:0 0 10px;letter-spacing:-.01em}
-  h1 em{font-style:italic;color:var(--season);transition:color .5s ease}
-  .sub{max-width:60ch;color:var(--ink-2);margin:0}
+  .hero{padding:44px 0 36px;border-bottom:1px solid var(--line-soft)}
+  .eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-deep);margin:0 0 12px}
+  h1{font-family:var(--heading);font-weight:600;font-size:clamp(44px,6.5vw,84px);line-height:.92;text-transform:uppercase;letter-spacing:.01em;margin:0 0 16px;text-wrap:balance}
+  .sub{max-width:62ch;color:var(--muted);margin:0;font-size:16px;line-height:1.55;text-wrap:pretty}
+
+  /* tags */
+  .tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;letter-spacing:.03em;padding:4px 10px;text-decoration:none}
+  .tag-outline{border:1px solid var(--line);color:var(--muted);background:transparent}
+  .tag-accent{border:1px solid var(--accent-border);color:var(--accent-deep);background:var(--accent-tint)}
+  a.tag:hover{border-color:var(--accent);color:var(--accent-dark)}
 
   /* controls */
-  .controls{display:grid;grid-template-columns:1fr 1fr auto auto;gap:12px;align-items:end;margin:28px 0 8px}
-  label.field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500;color:var(--ink-2)}
-  input[type=date],select,input[type=text]{font:inherit;font-size:15px;padding:10px 12px;border:1px solid var(--rule);border-radius:6px;background:var(--card);color:var(--ink)}
-  input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--season);outline-offset:2px}
-  button{font:inherit;font-size:14px;font-weight:500;padding:10px 14px;border-radius:6px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer}
-  button.ghost{background:transparent;color:var(--ink)}
-  .quick{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 28px}
-  .quick button{padding:6px 10px;font-size:13px;border-color:var(--rule);background:var(--card);color:var(--ink)}
+  .controls{margin-top:28px;padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;align-items:end}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .input{font:inherit;font-size:14px;padding:9px 11px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:0}
+  .btn{font:inherit;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:9px 16px;border:1px solid transparent;cursor:pointer;background:transparent;color:var(--ink);border-radius:0}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn-primary:hover{background:var(--accent-deep)}
+  .btn-primary .corner{color:var(--accent-deep)}
+  .btn-ghost{border-color:var(--line)}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent-dark);background:var(--accent-tint)}
+  .btn-row{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px}
 
-  /* day card */
-  .day{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;padding:24px 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule);margin-bottom:28px}
-  .day h2{font-family:var(--display);font-weight:600;font-size:clamp(28px,3.6vw,42px);line-height:1.05;margin:4px 0 6px}
-  .meta{display:flex;flex-wrap:wrap;gap:16px;font-family:var(--mono);font-size:13px;color:var(--ink-2)}
-  .meta b{color:var(--ink);font-weight:500}
-  .swatch{display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--season);vertical-align:middle;margin-right:6px}
-  .note{font-size:14px;color:var(--ink-2);margin:8px 0 0}
-  .readings a{font-family:var(--mono);font-size:13px}
+  /* day */
+  .day{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:28px;padding:36px 0 28px;border-bottom:1px solid var(--line-soft)}
+  .day .date{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .day h2{font-family:var(--heading);font-weight:600;font-size:clamp(30px,3.6vw,50px);line-height:1;text-transform:uppercase;margin:8px 0 12px;text-wrap:balance}
+  .meta{display:flex;flex-wrap:wrap;gap:18px;font-size:13px;color:var(--muted)}
+  .meta b{color:var(--ink)}
+  .swatch{display:inline-block;width:10px;height:10px;vertical-align:-1px;margin-right:7px}
+  .note{font-size:13px;color:var(--faint);margin:12px 0 0;max-width:52ch}
+  .readings-card{align-self:start;padding:18px 20px}
+  .kicker{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-deep);margin:0 0 8px}
+  .readings-card p{margin:0 0 6px;word-break:break-all;font-size:14px}
+  .readings-card .fine{font-size:12px;color:var(--faint);word-break:normal}
 
-  /* years grid */
-  .years{display:flex;flex-direction:column;gap:10px}
-  .year{display:grid;grid-template-columns:150px 1fr;gap:16px;background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:14px 16px}
-  .year .y{font-family:var(--display);font-size:34px;line-height:1;font-weight:500}
-  .year .y small{display:block;font-family:var(--mono);font-size:12px;color:var(--ink-2);margin-top:6px;letter-spacing:.04em}
-  .year .y small b{font-weight:500;color:var(--season)}
-  .links{display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start}
-  .links a{display:inline-flex;align-items:center;gap:6px;font-size:13px;text-decoration:none;padding:6px 10px;border:1px solid var(--rule);border-radius:999px;background:var(--paper)}
-  .links a:hover{border-color:var(--ink)}
-  .links a.daily{border-style:dashed}
-  .links a .t{font-family:var(--mono);font-size:11px;color:var(--ink-2)}
-  .ep{display:flex;flex-direction:column;gap:2px;padding:8px 12px;border:1px solid var(--rule);border-left:3px solid var(--season);border-radius:6px;background:var(--paper);text-decoration:none;min-width:220px;max-width:360px;flex:1}
-  .ep:hover{border-color:var(--ink);border-left-color:var(--season)}
-  .ep .who{font-family:var(--mono);font-size:11px;color:var(--ink-2);letter-spacing:.03em}
+  /* status + years */
+  .status{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin:18px 0}
+  .years{display:flex;flex-direction:column;gap:14px}
+  .year{display:grid;grid-template-columns:minmax(120px,160px) 1fr;gap:16px;padding:16px 20px}
+  .year .y{font-family:var(--heading);font-weight:600;font-size:40px;line-height:1}
+  .year .y small{display:block;font-family:var(--body);font-weight:400;font-size:12px;color:var(--faint);letter-spacing:.04em;margin-top:6px}
+  .links{display:flex;flex-wrap:wrap;gap:8px;align-items:center;align-content:center}
+  .links .none{color:var(--faint);font-size:14px}
+  .ep{display:flex;flex-direction:column;gap:2px;padding:10px 14px;border:1px solid var(--line);border-left:3px solid var(--accent);text-decoration:none;min-width:220px;max-width:340px;flex:1 1 auto;color:var(--ink);background:transparent}
+  .ep:hover{border-color:var(--accent)}
+  .ep .who{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
   .ep .ttl{font-size:14px;font-weight:500;line-height:1.3}
-  .ep .pub{font-family:var(--mono);font-size:11px;color:var(--ink-2)}
-  .fallback{display:flex;flex-wrap:wrap;gap:6px;width:100%;margin-top:4px}
-  .fallback a{font-size:12px;padding:4px 9px}
-  .status{font-family:var(--mono);font-size:12px;color:var(--ink-2);margin:0 0 16px}
-  .year.missing{opacity:.55}
-  .year.missing .links{font-size:13px;color:var(--ink-2);align-items:center}
+  .ep .pub{font-size:11px;color:var(--faint)}
+  .missing-note{font-size:12px;color:var(--faint)}
 
-  /* sources manager */
-  details{margin-top:40px;border-top:1px solid var(--rule);padding-top:18px}
-  summary{cursor:pointer;font-weight:500}
-  .srcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin:16px 0}
-  .src{border:1px solid var(--rule);border-radius:8px;padding:12px;background:var(--card);font-size:14px}
-  .src label{display:flex;gap:8px;align-items:flex-start;cursor:pointer}
-  .src .k{font-family:var(--mono);font-size:11px;color:var(--ink-2);display:block;margin-top:4px}
-  .add{display:grid;grid-template-columns:1fr 2fr auto auto;gap:10px;align-items:end}
-  .help{font-size:13px;color:var(--ink-2)}
-  .help code{font-family:var(--mono);background:var(--card);border:1px solid var(--rule);padding:1px 5px;border-radius:4px}
+  /* shows */
+  .shows{margin-top:44px}
+  .shows-head{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:14px}
+  .shows-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+  .show{padding:16px 18px}
+  .show .ttl{font-family:var(--heading);font-weight:600;font-size:18px;text-transform:uppercase;margin:2px 0}
+  .show p{margin:4px 0 0;font-size:13px;color:var(--muted)}
 
-  @media (max-width:820px){
-    .controls{grid-template-columns:1fr 1fr}
-    .day{grid-template-columns:1fr}
-    .year{grid-template-columns:1fr}
-    .year .y{display:flex;align-items:baseline;gap:12px}
-    .year .y small{margin:0}
-    .add{grid-template-columns:1fr}
-  }
+  @media (max-width:640px){ .year{grid-template-columns:1fr} .year .y{display:flex;align-items:baseline;gap:10px} .year .y small{margin:0} }
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
+<nav class="nav">
+  <span class="nav-brand">Lectionary Finder</span>
+  <span class="tag tag-outline">Roman Catholic</span>
+  <span class="tag tag-outline">US calendar</span>
+  <span class="spacer"></span>
+  <a href="https://bible.usccb.org/daily-bible-reading" target="_blank" rel="noopener">USCCB daily readings</a>
+</nav>
 <div class="page">
   <header class="hero">
-    <div class="ribbon" aria-hidden="true"></div>
-    <div>
-      <p class="eyebrow">Lectionary finder · Roman Catholic · US calendar</p>
-      <h1>One Sunday, <em>ten years</em> of preaching.</h1>
-      <p class="sub">Pick a date or a feast. The finder works out where it falls in the liturgical year, then lines up the same day across past years so you can pull several homilies and commentaries on the same readings.</p>
-    </div>
+    <p class="eyebrow">Homilies &amp; commentary · indexed by liturgical day</p>
+    <h1>One Sunday, ten years of preaching</h1>
+    <p class="sub">Pick a date or a feast. The finder locates it in the liturgical year, then lines up the same day across past years so you can pull several homilies and commentaries on the same readings.</p>
   </header>
 
-  <div class="controls">
-    <label class="field">Date
-      <input type="date" id="date">
-    </label>
-    <label class="field">Jump to a Sunday or feast
-      <select id="feast"><option value="">Choose…</option></select>
-    </label>
-    <label class="field">Years back
-      <select id="span"><option>5</option><option selected>10</option><option>15</option></select>
-    </label>
-    <button id="today" class="ghost" type="button">Today</button>
-  </div>
-  <div class="quick">
-    <button type="button" data-off="0">This Sunday</button>
-    <button type="button" data-off="7">Next Sunday</button>
-    <button type="button" data-off="-7">Last Sunday</button>
-  </div>
+  <section class="controls blueprint">
+    <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+    <div class="field"><label for="date">Date</label><input class="input" type="date" id="date"></div>
+    <div class="field"><label for="feast">Jump to a Sunday or feast</label>
+      <select class="input" id="feast"><option value="">Choose…</option></select></div>
+    <div class="field"><label for="span">Years back</label>
+      <select class="input" id="span"><option>5</option><option selected>10</option><option>15</option></select></div>
+    <div class="btn-row">
+      <button id="today" class="btn btn-primary blueprint" type="button"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Today</button>
+      <button class="btn btn-ghost" type="button" data-off="0">This Sunday</button>
+      <button class="btn btn-ghost" type="button" data-off="7">Next Sunday</button>
+      <button class="btn btn-ghost" type="button" data-off="-7">Last Sunday</button>
+    </div>
+  </section>
 
-  <p class="status" id="status">Loading episode index…</p>
   <section class="day" id="day" aria-live="polite"></section>
+  <p class="status" id="status">Loading episode index…</p>
   <section class="years" id="years"></section>
 
+  <section class="shows">
+    <div class="shows-head">Indexed shows</div>
+    <div class="shows-grid" id="shows"></div>
+  </section>
 </div>
 
 <script src="liturgy.js"></script>
 <script>
 /* ---------- sources ---------- */
-const COLORS={green:'var(--green)',violet:'var(--violet)',red:'var(--red)',white:'var(--gold)',rose:'var(--rose)'};
 let data=null; // episodes.json
 const searchSrcs = [
   {name:'Search Apple Podcasts', url:'https://podcasts.apple.com/us/search?term={q}+homily'},
   {name:'Search YouTube', url:'https://www.youtube.com/results?search_query={q}+homily'},
   {name:'Search Google', url:'https://www.google.com/search?q={q}+homily'},
 ];
+const COLORS={green:'var(--green)',violet:'var(--violet)',red:'var(--red)',white:'var(--gold)',rose:'var(--rose)'};
 const cleanTitle = t => t.replace(/\s*\(.*?\)|\s*—.*$/g,'');
 function sLink(src,L,dt){ const y=dt.getUTCFullYear(); return src.url.replace('{q}',encodeURIComponent(`${cleanTitle(L.title)} ${y}`)); }
 const usccb = dt => `https://bible.usccb.org/bible/readings/${String(dt.getUTCMonth()+1).padStart(2,'0')}${String(dt.getUTCDate()).padStart(2,'0')}${String(dt.getUTCFullYear()).slice(2)}.cfm`;
 const esc = s => s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const short = dt => dt.toLocaleDateString('en-US',{timeZone:'UTC',month:'short',day:'numeric'});
+const CORNERS='<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>';
 
 /* ---------- render ---------- */
 const $=s=>document.querySelector(s);
@@ -147,36 +165,35 @@ let current=new Date(Date.UTC(new Date().getFullYear(),new Date().getMonth(),new
 
 function render(){
   const Lt=liturgy(current), y=current.getUTCFullYear();
-  document.documentElement.style.setProperty('--season',COLORS[Lt.color]);
   const span=+$('#span').value;
   $('#day').innerHTML=`
     <div>
-      <p class="eyebrow">${fmt(current)}</p>
+      <p class="date">${fmt(current)}</p>
       <h2>${Lt.title}</h2>
       <div class="meta">
-        <span><span class="swatch"></span>${Lt.color==='white'?'White / gold':Lt.color[0].toUpperCase()+Lt.color.slice(1)}</span>
-        <span>Sunday cycle <b>Year ${Lt.cycle}</b></span>
-        <span>Weekday cycle <b>${Lt.wk}</b></span>
+        <span><span class="swatch" style="background:${COLORS[Lt.color]}"></span>${Lt.color==='white'?'White / Gold':Lt.color[0].toUpperCase()+Lt.color.slice(1)}</span>
+        <span>Sunday cycle · <b>Year ${Lt.cycle}</b></span>
+        <span>Weekday cycle · <b>${Lt.wk}</b></span>
       </div>
       ${Lt.kind==='weekday' ? '<p class="note">Weekday — only the daily shows publish for this. Pick a Sunday or solemnity for the homily podcasts.</p>' : ''}
     </div>
-    <div class="readings">
-      <p class="eyebrow">Readings for this date</p>
-      <a href="${usccb(current)}" target="_blank" rel="noopener">${usccb(current)}</a>
-      <p class="note">Each year below has its own readings link. Year ${Lt.cycle} comes around every three years.</p>
+    <div class="readings-card blueprint">${CORNERS}
+      <p class="kicker">Readings for this date</p>
+      <p><a href="${usccb(current)}" target="_blank" rel="noopener">${usccb(current)}</a></p>
+      <p class="fine">Each year below has its own readings link · Year ${Lt.cycle} recurs every three years</p>
     </div>`;
 
   const rows=[];
   for (let yy=y; yy>=y-span; yy--){
     const dt=findInYear(Lt.id,yy);
-    if (!dt){ rows.push(`<div class="year missing"><div class="y">${yy}</div><div class="links">No ${cleanTitle(Lt.title)} that year — the week was absorbed by Lent or Advent.</div></div>`); continue; }
+    if (!dt){ rows.push(`<div class="year blueprint">${CORNERS}<div class="y">${yy}<small>—</small></div><div class="links"><span class="none">No ${esc(cleanTitle(Lt.title))} that year — the week was absorbed by Lent or Advent.</span></div></div>`); continue; }
     const LL=liturgy(dt);
     const eps = (data && data.byId[Lt.id] && data.byId[Lt.id][yy]) || [];
     const have = new Set(eps.map(e=>e.s));
     const cards = eps.map(e=>`<a class="ep" href="${esc(e.u)}" target="_blank" rel="noopener"><span class="who">${esc(data.sources[e.s].name)}</span><span class="ttl">${esc(e.t)}</span><span class="pub">published ${e.p}${e.h==='nextSunday'?' · matched by date':''}</span></a>`).join('');
     const missing = data ? data.sources.filter((s,i)=>!have.has(i) && (s.kind==='daily' || LL.kind!=='weekday')).map(s=>s.name) : [];
-    const fb = `<div class="fallback"><a href="${usccb(dt)}" target="_blank" rel="noopener">Readings ${short(dt)}</a>${searchSrcs.map(s=>`<a href="${sLink(s,LL,dt)}" target="_blank" rel="noopener">${s.name}</a>`).join('')}${missing.length?`<span class="note" style="font-size:12px;align-self:center">Not in feed: ${esc(missing.join(', '))}</span>`:''}</div>`;
-    rows.push(`<div class="year"><div class="y">${yy}<small>${short(dt)} · Year <b>${LL.cycle}</b> · ${LL.wk}</small></div><div class="links">${cards}${fb}</div></div>`);
+    const fb = `<a class="tag tag-accent" href="${usccb(dt)}" target="_blank" rel="noopener">Readings · ${short(dt)}</a>${searchSrcs.map(s=>`<a class="tag tag-outline" href="${sLink(s,LL,dt)}" target="_blank" rel="noopener">${s.name}</a>`).join('')}${missing.length?`<span class="missing-note">Not in feed: ${esc(missing.join(', '))}</span>`:''}`;
+    rows.push(`<div class="year blueprint">${CORNERS}<div class="y">${yy}<small>${short(dt)} · Year ${LL.cycle} · ${LL.wk}</small></div><div class="links">${cards}${fb}</div></div>`);
   }
   $('#years').innerHTML=rows.join('');
   $('#date').value=iso(current);
@@ -191,23 +208,35 @@ function fillFeasts(){
   $('#feast').innerHTML='<option value="">Choose…</option>'+opts.join('');
 }
 
+function renderShows(){
+  const list = (data && data.sources) || [
+    {name:'Bishop Barron — Sunday Sermons',kind:'sunday'},
+    {name:'Fr. Mike Schmitz — Sunday Homilies',kind:'sunday'},
+    {name:'The Pillar — Sunday School',kind:'sunday'},
+    {name:'Logical Bible Study — Daily Gospel Exegesis',kind:'daily'}];
+  $('#shows').innerHTML=list.map(s=>{
+    const [ttl,rest]=s.name.split(' — ');
+    return `<div class="show blueprint">${CORNERS}<p class="kicker">${s.kind==='daily'?'Daily':'Sunday'}</p><div class="ttl">${esc(ttl)}</div><p>${esc(rest||'')}${s.count?` · ${s.count.toLocaleString()} episodes`:''}</p></div>`;
+  }).join('');
+}
+
 /* ---------- wire up ---------- */
 $('#date').addEventListener('change',e=>{ if(e.target.value){ current=new Date(e.target.value+'T00:00:00Z'); render(); fillFeasts(); }});
 $('#feast').addEventListener('change',e=>{ if(e.target.value){ current=new Date(e.target.value+'T00:00:00Z'); render(); }});
 $('#span').addEventListener('change',render);
 $('#today').addEventListener('click',()=>{const n=new Date();current=D(n.getFullYear(),n.getMonth()+1,n.getDate());render();fillFeasts();});
-document.querySelectorAll('.quick button').forEach(b=>b.addEventListener('click',()=>{
+document.querySelectorAll('.btn-row .btn-ghost').forEach(b=>b.addEventListener('click',()=>{
   const n=new Date(); const t=D(n.getFullYear(),n.getMonth()+1,n.getDate());
   const off=+b.dataset.off;
   current = off===-7 ? sundayOnOrBefore(addD(t,-1)) : addD(sundayOnOrAfter(t),off); render(); fillFeasts();
 }));
 
-fillFeasts(); render();
+fillFeasts(); render(); renderShows();
 fetch('episodes.json').then(r=>r.ok?r.json():null).then(j=>{
   data=j;
   if (j){ const n=j.sources.reduce((a,s)=>a+s.count,0); $('#status').textContent=`${n.toLocaleString()} episodes indexed across ${j.sources.length} shows · refreshed ${j.generated.slice(0,10)}`; }
   else $('#status').textContent='episodes.json not found yet — run the Refresh episodes action in GitHub. Showing search links only.';
-  render();
+  render(); renderShows();
 }).catch(()=>{ $('#status').textContent='Could not load episodes.json (if you opened this file directly from your computer, that is expected — it works once hosted).'; });
 </script>
 </body>
