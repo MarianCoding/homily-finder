@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lectionary Finder — homilies &amp; commentary by liturgical date</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F7F6F2; --ink:#1C1A17; --ink-2:#4F4A43; --rule:#D9D5CC; --card:#FFFFFF;
+    --green:#2E6B3F; --violet:#5B3A7E; --red:#A3262B; --gold:#B8932F; --rose:#C97C8F; --white:#B8932F;
+    --season:var(--green);
+    --display:"Cormorant Garamond",Georgia,serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+  a{color:inherit}
+  .page{max-width:1180px;margin:0 auto;padding:32px 24px 80px}
+
+  /* hero */
+  .hero{display:grid;grid-template-columns:28px 1fr;gap:28px;margin-bottom:36px}
+  .ribbon{background:var(--season);border-radius:0 0 4px 4px;position:relative;min-height:100%;transition:background .5s ease}
+  .ribbon:after{content:"";position:absolute;left:0;right:0;bottom:-14px;border-left:14px solid var(--season);border-right:14px solid var(--season);border-bottom:14px solid transparent;transition:border-color .5s ease}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);margin:0 0 8px}
+  h1{font-family:var(--display);font-weight:500;font-size:clamp(40px,6vw,72px);line-height:.98;margin:0 0 10px;letter-spacing:-.01em}
+  h1 em{font-style:italic;color:var(--season);transition:color .5s ease}
+  .sub{max-width:60ch;color:var(--ink-2);margin:0}
+
+  /* controls */
+  .controls{display:grid;grid-template-columns:1fr 1fr auto auto;gap:12px;align-items:end;margin:28px 0 8px}
+  label.field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500;color:var(--ink-2)}
+  input[type=date],select,input[type=text]{font:inherit;font-size:15px;padding:10px 12px;border:1px solid var(--rule);border-radius:6px;background:var(--card);color:var(--ink)}
+  input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--season);outline-offset:2px}
+  button{font:inherit;font-size:14px;font-weight:500;padding:10px 14px;border-radius:6px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer}
+  button.ghost{background:transparent;color:var(--ink)}
+  .quick{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 28px}
+  .quick button{padding:6px 10px;font-size:13px;border-color:var(--rule);background:var(--card);color:var(--ink)}
+
+  /* day card */
+  .day{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;padding:24px 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule);margin-bottom:28px}
+  .day h2{font-family:var(--display);font-weight:600;font-size:clamp(28px,3.6vw,42px);line-height:1.05;margin:4px 0 6px}
+  .meta{display:flex;flex-wrap:wrap;gap:16px;font-family:var(--mono);font-size:13px;color:var(--ink-2)}
+  .meta b{color:var(--ink);font-weight:500}
+  .swatch{display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--season);vertical-align:middle;margin-right:6px}
+  .note{font-size:14px;color:var(--ink-2);margin:8px 0 0}
+  .readings a{font-family:var(--mono);font-size:13px}
+
+  /* years grid */
+  .years{display:flex;flex-direction:column;gap:10px}
+  .year{display:grid;grid-template-columns:150px 1fr;gap:16px;background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:14px 16px}
+  .year .y{font-family:var(--display);font-size:34px;line-height:1;font-weight:500}
+  .year .y small{display:block;font-family:var(--mono);font-size:12px;color:var(--ink-2);margin-top:6px;letter-spacing:.04em}
+  .year .y small b{font-weight:500;color:var(--season)}
+  .links{display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start}
+  .links a{display:inline-flex;align-items:center;gap:6px;font-size:13px;text-decoration:none;padding:6px 10px;border:1px solid var(--rule);border-radius:999px;background:var(--paper)}
+  .links a:hover{border-color:var(--ink)}
+  .links a.daily{border-style:dashed}
+  .links a .t{font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+  .year.missing{opacity:.55}
+  .year.missing .links{font-size:13px;color:var(--ink-2);align-items:center}
+
+  /* sources manager */
+  details{margin-top:40px;border-top:1px solid var(--rule);padding-top:18px}
+  summary{cursor:pointer;font-weight:500}
+  .srcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin:16px 0}
+  .src{border:1px solid var(--rule);border-radius:8px;padding:12px;background:var(--card);font-size:14px}
+  .src label{display:flex;gap:8px;align-items:flex-start;cursor:pointer}
+  .src .k{font-family:var(--mono);font-size:11px;color:var(--ink-2);display:block;margin-top:4px}
+  .add{display:grid;grid-template-columns:1fr 2fr auto auto;gap:10px;align-items:end}
+  .help{font-size:13px;color:var(--ink-2)}
+  .help code{font-family:var(--mono);background:var(--card);border:1px solid var(--rule);padding:1px 5px;border-radius:4px}
+
+  @media (max-width:820px){
+    .controls{grid-template-columns:1fr 1fr}
+    .day{grid-template-columns:1fr}
+    .year{grid-template-columns:1fr}
+    .year .y{display:flex;align-items:baseline;gap:12px}
+    .year .y small{margin:0}
+    .add{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="hero">
+    <div class="ribbon" aria-hidden="true"></div>
+    <div>
+      <p class="eyebrow">Lectionary finder · Roman Catholic · US calendar</p>
+      <h1>One Sunday, <em>ten years</em> of preaching.</h1>
+      <p class="sub">Pick a date or a feast. The finder works out where it falls in the liturgical year, then lines up the same day across past years so you can pull several homilies and commentaries on the same readings.</p>
+    </div>
+  </header>
+
+  <div class="controls">
+    <label class="field">Date
+      <input type="date" id="date">
+    </label>
+    <label class="field">Jump to a Sunday or feast
+      <select id="feast"><option value="">Choose…</option></select>
+    </label>
+    <label class="field">Years back
+      <select id="span"><option>5</option><option selected>10</option><option>15</option></select>
+    </label>
+    <button id="today" class="ghost" type="button">Today</button>
+  </div>
+  <div class="quick">
+    <button type="button" data-off="0">This Sunday</button>
+    <button type="button" data-off="7">Next Sunday</button>
+    <button type="button" data-off="-7">Last Sunday</button>
+  </div>
+
+  <section class="day" id="day" aria-live="polite"></section>
+  <section class="years" id="years"></section>
+
+  <details>
+    <summary>Sources (turn on, turn off, add your own)</summary>
+    <p class="help">Podcast hosts don't publish episodes at predictable URLs, so each button opens a targeted search on that source's home. Add a source with a URL template using <code>{title}</code>, <code>{year}</code>, <code>{date}</code> (YYYY-MM-DD), <code>{q}</code> (title + year, URL-encoded).</p>
+    <div class="srcs" id="srcs"></div>
+    <div class="add">
+      <label class="field">Name <input type="text" id="addName" placeholder="e.g. Catholic Stuff You Should Know"></label>
+      <label class="field">URL template <input type="text" id="addUrl" placeholder="https://www.google.com/search?q={q}+Catholic+Stuff"></label>
+      <label class="field">Daily? <select id="addDaily"><option value="">Sundays &amp; feasts</option><option value="1">Every day</option></select></label>
+      <button type="button" id="addBtn">Add source</button>
+    </div>
+  </details>
+</div>
+
+<script>
+/* ---------- date helpers ---------- */
+const D = (y,m,d) => new Date(Date.UTC(y,m-1,d));
+const addD = (dt,n) => new Date(dt.getTime()+n*864e5);
+const dow = dt => dt.getUTCDay();
+const iso = dt => dt.toISOString().slice(0,10);
+const same = (a,b) => a.getTime()===b.getTime();
+const diffW = (a,b) => Math.round((a-b)/6048e5);
+const fmt = dt => dt.toLocaleDateString('en-US',{timeZone:'UTC',weekday:'long',month:'long',day:'numeric',year:'numeric'});
+const ord = n => n+(['th','st','nd','rd'][(n%100>>3^1&&n%10)||0]||'th');
+
+function easter(y){ // Meeus/Jones/Butcher
+  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),
+  h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),
+  mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1; return D(y,mo,da);
+}
+function sundayOnOrAfter(dt){ return addD(dt,(7-dow(dt))%7); }
+function sundayOnOrBefore(dt){ return addD(dt,-dow(dt)); }
+
+/* key dates for a calendar year */
+function keys(y){
+  const E=easter(y);
+  const adv1=sundayOnOrAfter(D(y,11,27));
+  const epiph=sundayOnOrAfter(D(y,1,2));
+  let bapt=addD(epiph,7); let baptSun=bapt;
+  if (epiph.getUTCDate()>=7){ bapt=addD(epiph,1); baptSun=epiph; } // US: Baptism moves to Monday
+  const prevAdv1=sundayOnOrAfter(D(y-1,11,27));
+  return {E,adv1,epiph,bapt,baptSun,ash:addD(E,-46),pent:addD(E,49),ctk:addD(adv1,-7),prevAdv1};
+}
+
+/* Liturgical identity of a date: {id, title, color, kind, cycle} */
+function liturgy(dt){
+  const y=dt.getUTCFullYear(), m=dt.getUTCMonth()+1, d=dt.getUTCDate(), K=keys(y), sun=dow(dt)===0;
+  const litYear = dt>=K.adv1 ? y+1 : y;
+  const cycle = ['C','A','B'][litYear%3];
+  const wk = litYear%2 ? 'I' : 'II';
+  const out = (id,title,color,kind='feast') => ({id,title,color,kind,cycle,wk});
+  const md=(mm,dd)=>m===mm&&d===dd;
+
+  // Fixed solemnities that take precedence over Sundays
+  if (md(12,25)) return out('F-12-25','The Nativity of the Lord (Christmas)','white');
+  if (md(1,1))  return out('F-1-1','Solemnity of Mary, Mother of God','white');
+  if (md(8,15)) return out('F-8-15','The Assumption of the Blessed Virgin Mary','white');
+  if (md(11,1)) return out('F-11-1','All Saints','white');
+  if (md(12,8) && !sun) return out('F-12-8','The Immaculate Conception','white');
+  if (md(12,9) && dow(dt)===1 && dow(D(y,12,8))===0) return out('F-12-8','The Immaculate Conception (transferred)','white');
+  if (md(11,2) && !(same(dt,K.adv1))) return out('F-11-2','The Commemoration of All the Faithful Departed (All Souls)','violet');
+  if (sun && md(2,2))  return out('F-2-2','The Presentation of the Lord','white');
+  if (sun && md(8,6))  return out('F-8-6','The Transfiguration of the Lord','white');
+  if (sun && md(9,14)) return out('F-9-14','The Exaltation of the Holy Cross','red');
+  if (sun && md(11,9)) return out('F-11-9','Dedication of the Lateran Basilica','white');
+  if (sun && md(6,24) && dt>K.pent) return out('F-6-24','The Nativity of St John the Baptist','white');
+  if (sun && md(6,29) && dt>K.pent) return out('F-6-29','Saints Peter and Paul','red');
+
+  // Christmas season
+  if (dt>=D(y,12,26) && dt<=D(y,12,31)){
+    if (sun) return out('HolyFamily','The Holy Family of Jesus, Mary and Joseph','white');
+    if (md(12,30) && dow(D(y,12,25))===0) return out('HolyFamily','The Holy Family of Jesus, Mary and Joseph','white');
+    return out('Xmas-oct-'+d,`${ord(d-24)} day in the Octave of Christmas`,'white','weekday');
+  }
+  if (dt<K.bapt || same(dt,K.bapt)){
+    if (same(dt,K.epiph)) return out('Epiphany','The Epiphany of the Lord','white');
+    if (same(dt,K.bapt))  return out('Baptism','The Baptism of the Lord','white');
+    if (sun) return out('Xmas-2Sun','Second Sunday after the Nativity','white');
+    return out('Xmas-wk-'+m+'-'+d,'Weekday of the Christmas season','white','weekday');
+  }
+
+  // Triduum & Lent
+  if (same(dt,addD(K.E,-3))) return out('HolyThu','Holy Thursday — Mass of the Lord\'s Supper','white');
+  if (same(dt,addD(K.E,-2))) return out('GoodFri','Good Friday of the Lord\'s Passion','red');
+  if (same(dt,addD(K.E,-1))) return out('HolySat','Holy Saturday — The Easter Vigil','white');
+  if (same(dt,K.ash)) return out('AshWed','Ash Wednesday','violet');
+  if (dt>K.ash && dt<K.E){
+    if (same(dt,addD(K.E,-7))) return out('PalmSun','Palm Sunday of the Passion of the Lord','red');
+    const s=sundayOnOrBefore(dt); const n=diffW(s,addD(K.E,-42))+1;
+    if (n<1) return out('Lent-0-'+dow(dt),`${dayName(dt)} after Ash Wednesday`,'violet','weekday');
+    if (sun) return out('Lent-'+n,`${ord(n)} Sunday of Lent`,n===4?'rose':'violet');
+    if (n===6) return out('HolyWk-'+dow(dt),`${dayName(dt)} of Holy Week`,'violet','weekday');
+    return out('Lent-'+n+'-'+dow(dt),`${dayName(dt)} of the ${ord(n)} Week of Lent`,'violet','weekday');
+  }
+
+  // Easter season
+  if (dt>=K.E && dt<=K.pent){
+    if (same(dt,K.E)) return out('Easter','Easter Sunday of the Resurrection of the Lord','white');
+    if (same(dt,K.pent)) return out('Pentecost','Pentecost Sunday','red');
+    const n=diffW(sundayOnOrBefore(dt),K.E)+1;
+    if (same(dt,addD(K.E,39))) return out('Ascension','The Ascension of the Lord (Thursday; many US dioceses transfer to Sunday)','white');
+    if (sun){
+      if (n===2) return out('Easter-2','2nd Sunday of Easter (Divine Mercy Sunday)','white');
+      if (n===7) return out('Easter-7','7th Sunday of Easter — The Ascension where transferred','white');
+      return out('Easter-'+n,`${ord(n)} Sunday of Easter`,'white');
+    }
+    if (n===1) return out('Easter-oct-'+dow(dt),`${dayName(dt)} within the Octave of Easter`,'white','weekday');
+    return out('Easter-'+n+'-'+dow(dt),`${dayName(dt)} of the ${ord(n)} Week of Easter`,'white','weekday');
+  }
+
+  // Advent
+  if (dt>=K.adv1 && dt<D(y,12,25)){
+    const n=diffW(sundayOnOrBefore(dt),K.adv1)+1;
+    if (sun) return out('Advent-'+n,`${ord(n)} Sunday of Advent`,n===3?'rose':'violet');
+    if (d>=17) return out('Advent-late-'+d,`December ${d} (late Advent weekday)`,'violet','weekday');
+    return out('Advent-'+n+'-'+dow(dt),`${dayName(dt)} of the ${ord(n)} Week of Advent`,'violet','weekday');
+  }
+
+  // Ordinary Time
+  const s=sundayOnOrBefore(dt);
+  let n;
+  if (dt<K.ash) n=diffW(s,K.baptSun)+1; else n=34-diffW(K.ctk,s);
+  if (sun){
+    if (same(dt,addD(K.pent,7)))  return out('Trinity','The Most Holy Trinity','white');
+    if (same(dt,addD(K.pent,14))) return out('CorpusChristi','The Most Holy Body and Blood of Christ (Corpus Christi)','white');
+    if (same(dt,K.ctk)) return out('ChristKing','Our Lord Jesus Christ, King of the Universe','white');
+    return out('OT-'+n,`${ord(n)} Sunday in Ordinary Time`,'green');
+  }
+  if (same(dt,addD(K.pent,19))) return out('SacredHeart','The Most Sacred Heart of Jesus','white');
+  return out('OT-'+n+'-'+dow(dt),`${dayName(dt)} of the ${ord(n)} Week in Ordinary Time`,'green','weekday');
+}
+function dayName(dt){ return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dow(dt)]; }
+
+/* find the date with the same liturgical id in a given calendar year */
+function findInYear(id,y){
+  for (let dt=D(y,1,1); dt.getUTCFullYear()===y; dt=addD(dt,1)){
+    if (liturgy(dt).id===id) return dt;
+  }
+  return null;
+}
+
+/* ---------- sources ---------- */
+const COLORS={green:'var(--green)',violet:'var(--violet)',red:'var(--red)',white:'var(--gold)',rose:'var(--rose)'};
+let sources = [
+  {name:'Bishop Barron — Sunday Sermons', url:'https://www.google.com/search?q={q}+Bishop+Barron+sermon', daily:false, on:true},
+  {name:'Bishop Barron — Daily Gospel Reflection', url:'https://www.wordonfire.org/daily-gospel-reflections/?date={date}', daily:true, on:true},
+  {name:'Fr. Mike Schmitz — Homilies', url:'https://www.google.com/search?q={q}+Fr+Mike+Schmitz+homily', daily:false, on:true},
+  {name:'The Pillar — Sunday School', url:'https://www.google.com/search?q={q}+The+Pillar+%22Sunday+School%22', daily:false, on:true},
+  {name:'Logical Bible Study', url:'https://www.google.com/search?q=%22Logical+Bible+Study%22+{date}', daily:true, on:true},
+  {name:'USCCB readings', url:'https://bible.usccb.org/bible/readings/{usccb}.cfm', daily:true, on:true, readings:true},
+  {name:'Apple Podcasts search', url:'https://podcasts.apple.com/us/search?term={q}+homily', daily:false, on:true},
+  {name:'Spotify search', url:'https://open.spotify.com/search/{q}%20homily', daily:false, on:false},
+  {name:'YouTube search', url:'https://www.youtube.com/results?search_query={q}+homily', daily:false, on:false},
+];
+function link(src,L,dt){
+  const y=dt.getUTCFullYear(), ds=iso(dt);
+  const usccb=String(dt.getUTCMonth()+1).padStart(2,'0')+String(dt.getUTCDate()).padStart(2,'0')+String(y).slice(2);
+  const title=L.title.replace(/\s*\(.*?\)|\s*—.*$/g,'');
+  return src.url.replace('{title}',encodeURIComponent(title)).replace('{year}',y).replace('{date}',ds)
+    .replace('{usccb}',usccb).replace('{q}',encodeURIComponent(`${title} ${y}`));
+}
+
+/* ---------- render ---------- */
+const $=s=>document.querySelector(s);
+let current=new Date(Date.UTC(new Date().getFullYear(),new Date().getMonth(),new Date().getDate()));
+
+function render(){
+  const L=liturgy(current), y=current.getUTCFullYear();
+  document.documentElement.style.setProperty('--season',COLORS[L.color]);
+  const span=+$('#span').value;
+  const usccb=sources.find(s=>s.readings);
+  $('#day').innerHTML=`
+    <div>
+      <p class="eyebrow">${fmt(current)}</p>
+      <h2>${L.title}</h2>
+      <div class="meta">
+        <span><span class="swatch"></span>${L.color==='white'?'White / gold':L.color[0].toUpperCase()+L.color.slice(1)}</span>
+        <span>Sunday cycle <b>Year ${L.cycle}</b></span>
+        <span>Weekday cycle <b>${L.wk}</b></span>
+      </div>
+      ${L.kind==='weekday' ? '<p class="note">This is a weekday, so only daily sources are shown. Sunday homily sources appear when you pick a Sunday or solemnity.</p>' : ''}
+    </div>
+    <div class="readings">
+      <p class="eyebrow">Readings for this date</p>
+      <a href="${link(usccb,L,current)}" target="_blank" rel="noopener">${link(usccb,L,current)}</a>
+      <p class="note">Past years below link to the readings for that year's date, so you'll see the Year ${L.cycle} lectionary again every three years.</p>
+    </div>`;
+
+  const rows=[];
+  for (let yy=y; yy>=y-span; yy--){
+    const dt=findInYear(L.id,yy);
+    if (!dt){ rows.push(`<div class="year missing"><div class="y">${yy}</div><div class="links">That year's calendar had no ${L.title.replace(/\s*\(.*?\)|\s*—.*$/g,'')} — the week was absorbed by Lent or Advent.</div></div>`); continue; }
+    const LL=liturgy(dt);
+    const btns=sources.filter(s=>s.on && (s.daily || LL.kind!=='weekday')).map(s=>
+      `<a href="${link(s,LL,dt)}" target="_blank" rel="noopener" class="${s.daily?'daily':''}">${s.name}${yy===y?'':`<span class="t">${dt.toLocaleDateString('en-US',{timeZone:'UTC',month:'short',day:'numeric'})}</span>`}</a>`).join('');
+    rows.push(`<div class="year"><div class="y">${yy}<small>${dt.toLocaleDateString('en-US',{timeZone:'UTC',month:'short',day:'numeric'})} · Year <b>${LL.cycle}</b> · ${LL.wk}</small></div><div class="links">${btns}</div></div>`);
+  }
+  $('#years').innerHTML=rows.join('');
+  $('#date').value=iso(current);
+}
+
+function renderSources(){
+  $('#srcs').innerHTML=sources.map((s,i)=>`<div class="src"><label><input type="checkbox" data-i="${i}" ${s.on?'checked':''}> <span>${s.name}<span class="k">${s.daily?'every day':'Sundays & feasts'} · ${s.url.replace(/https?:\/\/(www\.)?/,'').slice(0,40)}…</span></span></label></div>`).join('');
+  $('#srcs').querySelectorAll('input').forEach(cb=>cb.addEventListener('change',e=>{sources[+e.target.dataset.i].on=e.target.checked;render();}));
+}
+
+function fillFeasts(){
+  const y=current.getUTCFullYear(); const seen=new Set(); const opts=[];
+  for (let dt=D(y,1,1); dt.getUTCFullYear()===y; dt=addD(dt,1)){
+    const L=liturgy(dt); if (L.kind==='weekday' || seen.has(L.id)) continue; seen.add(L.id);
+    opts.push(`<option value="${iso(dt)}">${L.title.replace(/\s*\(.*?\)|\s*—.*$/g,'')} — ${dt.toLocaleDateString('en-US',{timeZone:'UTC',month:'short',day:'numeric'})}</option>`);
+  }
+  $('#feast').innerHTML='<option value="">Choose…</option>'+opts.join('');
+}
+
+/* ---------- wire up ---------- */
+$('#date').addEventListener('change',e=>{ if(e.target.value){ current=new Date(e.target.value+'T00:00:00Z'); render(); fillFeasts(); }});
+$('#feast').addEventListener('change',e=>{ if(e.target.value){ current=new Date(e.target.value+'T00:00:00Z'); render(); }});
+$('#span').addEventListener('change',render);
+$('#today').addEventListener('click',()=>{const n=new Date();current=D(n.getFullYear(),n.getMonth()+1,n.getDate());render();fillFeasts();});
+document.querySelectorAll('.quick button').forEach(b=>b.addEventListener('click',()=>{
+  const n=new Date(); const t=D(n.getFullYear(),n.getMonth()+1,n.getDate());
+  let s=sundayOnOrAfter(t); const off=+b.dataset.off;
+  current = off===-7 ? addD(sundayOnOrBefore(addD(t,-1)),0) : addD(s,off); render(); fillFeasts();
+}));
+$('#addBtn').addEventListener('click',()=>{
+  const name=$('#addName').value.trim(), url=$('#addUrl').value.trim();
+  if(!name||!url.startsWith('http')){ alert('Give the source a name and a URL template starting with https://'); return; }
+  sources.push({name,url,daily:!!$('#addDaily').value,on:true}); $('#addName').value='';$('#addUrl').value=''; renderSources(); render();
+});
+
+renderSources(); fillFeasts(); render();
+</script>
+</body>
+</html>
