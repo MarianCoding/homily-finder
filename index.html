@@ -57,6 +57,14 @@
   .links a:hover{border-color:var(--ink)}
   .links a.daily{border-style:dashed}
   .links a .t{font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+  .ep{display:flex;flex-direction:column;gap:2px;padding:8px 12px;border:1px solid var(--rule);border-left:3px solid var(--season);border-radius:6px;background:var(--paper);text-decoration:none;min-width:220px;max-width:360px;flex:1}
+  .ep:hover{border-color:var(--ink);border-left-color:var(--season)}
+  .ep .who{font-family:var(--mono);font-size:11px;color:var(--ink-2);letter-spacing:.03em}
+  .ep .ttl{font-size:14px;font-weight:500;line-height:1.3}
+  .ep .pub{font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+  .fallback{display:flex;flex-wrap:wrap;gap:6px;width:100%;margin-top:4px}
+  .fallback a{font-size:12px;padding:4px 9px}
+  .status{font-family:var(--mono);font-size:12px;color:var(--ink-2);margin:0 0 16px}
   .year.missing{opacity:.55}
   .year.missing .links{font-size:13px;color:var(--ink-2);align-items:center}
 
@@ -111,219 +119,74 @@
     <button type="button" data-off="-7">Last Sunday</button>
   </div>
 
+  <p class="status" id="status">Loading episode index…</p>
   <section class="day" id="day" aria-live="polite"></section>
   <section class="years" id="years"></section>
 
-  <details>
-    <summary>Sources (turn on, turn off, add your own)</summary>
-    <p class="help">Podcast hosts don't publish episodes at predictable URLs, so each button opens a targeted search on that source's home. Add a source with a URL template using <code>{title}</code>, <code>{year}</code>, <code>{date}</code> (YYYY-MM-DD), <code>{q}</code> (title + year, URL-encoded).</p>
-    <div class="srcs" id="srcs"></div>
-    <div class="add">
-      <label class="field">Name <input type="text" id="addName" placeholder="e.g. Catholic Stuff You Should Know"></label>
-      <label class="field">URL template <input type="text" id="addUrl" placeholder="https://www.google.com/search?q={q}+Catholic+Stuff"></label>
-      <label class="field">Daily? <select id="addDaily"><option value="">Sundays &amp; feasts</option><option value="1">Every day</option></select></label>
-      <button type="button" id="addBtn">Add source</button>
-    </div>
-  </details>
 </div>
 
+<script src="liturgy.js"></script>
 <script>
-/* ---------- date helpers ---------- */
-const D = (y,m,d) => new Date(Date.UTC(y,m-1,d));
-const addD = (dt,n) => new Date(dt.getTime()+n*864e5);
-const dow = dt => dt.getUTCDay();
-const iso = dt => dt.toISOString().slice(0,10);
-const same = (a,b) => a.getTime()===b.getTime();
-const diffW = (a,b) => Math.round((a-b)/6048e5);
-const fmt = dt => dt.toLocaleDateString('en-US',{timeZone:'UTC',weekday:'long',month:'long',day:'numeric',year:'numeric'});
-const ord = n => n+(['th','st','nd','rd'][(n%100>>3^1&&n%10)||0]||'th');
-
-function easter(y){ // Meeus/Jones/Butcher
-  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),
-  h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),
-  mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1; return D(y,mo,da);
-}
-function sundayOnOrAfter(dt){ return addD(dt,(7-dow(dt))%7); }
-function sundayOnOrBefore(dt){ return addD(dt,-dow(dt)); }
-
-/* key dates for a calendar year */
-function keys(y){
-  const E=easter(y);
-  const adv1=sundayOnOrAfter(D(y,11,27));
-  const epiph=sundayOnOrAfter(D(y,1,2));
-  let bapt=addD(epiph,7); let baptSun=bapt;
-  if (epiph.getUTCDate()>=7){ bapt=addD(epiph,1); baptSun=epiph; } // US: Baptism moves to Monday
-  const prevAdv1=sundayOnOrAfter(D(y-1,11,27));
-  return {E,adv1,epiph,bapt,baptSun,ash:addD(E,-46),pent:addD(E,49),ctk:addD(adv1,-7),prevAdv1};
-}
-
-/* Liturgical identity of a date: {id, title, color, kind, cycle} */
-function liturgy(dt){
-  const y=dt.getUTCFullYear(), m=dt.getUTCMonth()+1, d=dt.getUTCDate(), K=keys(y), sun=dow(dt)===0;
-  const litYear = dt>=K.adv1 ? y+1 : y;
-  const cycle = ['C','A','B'][litYear%3];
-  const wk = litYear%2 ? 'I' : 'II';
-  const out = (id,title,color,kind='feast') => ({id,title,color,kind,cycle,wk});
-  const md=(mm,dd)=>m===mm&&d===dd;
-
-  // Fixed solemnities that take precedence over Sundays
-  if (md(12,25)) return out('F-12-25','The Nativity of the Lord (Christmas)','white');
-  if (md(1,1))  return out('F-1-1','Solemnity of Mary, Mother of God','white');
-  if (md(8,15)) return out('F-8-15','The Assumption of the Blessed Virgin Mary','white');
-  if (md(11,1)) return out('F-11-1','All Saints','white');
-  if (md(12,8) && !sun) return out('F-12-8','The Immaculate Conception','white');
-  if (md(12,9) && dow(dt)===1 && dow(D(y,12,8))===0) return out('F-12-8','The Immaculate Conception (transferred)','white');
-  if (md(11,2) && !(same(dt,K.adv1))) return out('F-11-2','The Commemoration of All the Faithful Departed (All Souls)','violet');
-  if (sun && md(2,2))  return out('F-2-2','The Presentation of the Lord','white');
-  if (sun && md(8,6))  return out('F-8-6','The Transfiguration of the Lord','white');
-  if (sun && md(9,14)) return out('F-9-14','The Exaltation of the Holy Cross','red');
-  if (sun && md(11,9)) return out('F-11-9','Dedication of the Lateran Basilica','white');
-  if (sun && md(6,24) && dt>K.pent) return out('F-6-24','The Nativity of St John the Baptist','white');
-  if (sun && md(6,29) && dt>K.pent) return out('F-6-29','Saints Peter and Paul','red');
-
-  // Christmas season
-  if (dt>=D(y,12,26) && dt<=D(y,12,31)){
-    if (sun) return out('HolyFamily','The Holy Family of Jesus, Mary and Joseph','white');
-    if (md(12,30) && dow(D(y,12,25))===0) return out('HolyFamily','The Holy Family of Jesus, Mary and Joseph','white');
-    return out('Xmas-oct-'+d,`${ord(d-24)} day in the Octave of Christmas`,'white','weekday');
-  }
-  if (dt<K.bapt || same(dt,K.bapt)){
-    if (same(dt,K.epiph)) return out('Epiphany','The Epiphany of the Lord','white');
-    if (same(dt,K.bapt))  return out('Baptism','The Baptism of the Lord','white');
-    if (sun) return out('Xmas-2Sun','Second Sunday after the Nativity','white');
-    return out('Xmas-wk-'+m+'-'+d,'Weekday of the Christmas season','white','weekday');
-  }
-
-  // Triduum & Lent
-  if (same(dt,addD(K.E,-3))) return out('HolyThu','Holy Thursday — Mass of the Lord\'s Supper','white');
-  if (same(dt,addD(K.E,-2))) return out('GoodFri','Good Friday of the Lord\'s Passion','red');
-  if (same(dt,addD(K.E,-1))) return out('HolySat','Holy Saturday — The Easter Vigil','white');
-  if (same(dt,K.ash)) return out('AshWed','Ash Wednesday','violet');
-  if (dt>K.ash && dt<K.E){
-    if (same(dt,addD(K.E,-7))) return out('PalmSun','Palm Sunday of the Passion of the Lord','red');
-    const s=sundayOnOrBefore(dt); const n=diffW(s,addD(K.E,-42))+1;
-    if (n<1) return out('Lent-0-'+dow(dt),`${dayName(dt)} after Ash Wednesday`,'violet','weekday');
-    if (sun) return out('Lent-'+n,`${ord(n)} Sunday of Lent`,n===4?'rose':'violet');
-    if (n===6) return out('HolyWk-'+dow(dt),`${dayName(dt)} of Holy Week`,'violet','weekday');
-    return out('Lent-'+n+'-'+dow(dt),`${dayName(dt)} of the ${ord(n)} Week of Lent`,'violet','weekday');
-  }
-
-  // Easter season
-  if (dt>=K.E && dt<=K.pent){
-    if (same(dt,K.E)) return out('Easter','Easter Sunday of the Resurrection of the Lord','white');
-    if (same(dt,K.pent)) return out('Pentecost','Pentecost Sunday','red');
-    const n=diffW(sundayOnOrBefore(dt),K.E)+1;
-    if (same(dt,addD(K.E,39))) return out('Ascension','The Ascension of the Lord (Thursday; many US dioceses transfer to Sunday)','white');
-    if (sun){
-      if (n===2) return out('Easter-2','2nd Sunday of Easter (Divine Mercy Sunday)','white');
-      if (n===7) return out('Easter-7','7th Sunday of Easter — The Ascension where transferred','white');
-      return out('Easter-'+n,`${ord(n)} Sunday of Easter`,'white');
-    }
-    if (n===1) return out('Easter-oct-'+dow(dt),`${dayName(dt)} within the Octave of Easter`,'white','weekday');
-    return out('Easter-'+n+'-'+dow(dt),`${dayName(dt)} of the ${ord(n)} Week of Easter`,'white','weekday');
-  }
-
-  // Advent
-  if (dt>=K.adv1 && dt<D(y,12,25)){
-    const n=diffW(sundayOnOrBefore(dt),K.adv1)+1;
-    if (sun) return out('Advent-'+n,`${ord(n)} Sunday of Advent`,n===3?'rose':'violet');
-    if (d>=17) return out('Advent-late-'+d,`December ${d} (late Advent weekday)`,'violet','weekday');
-    return out('Advent-'+n+'-'+dow(dt),`${dayName(dt)} of the ${ord(n)} Week of Advent`,'violet','weekday');
-  }
-
-  // Ordinary Time
-  const s=sundayOnOrBefore(dt);
-  let n;
-  if (dt<K.ash) n=diffW(s,K.baptSun)+1; else n=34-diffW(K.ctk,s);
-  if (sun){
-    if (same(dt,addD(K.pent,7)))  return out('Trinity','The Most Holy Trinity','white');
-    if (same(dt,addD(K.pent,14))) return out('CorpusChristi','The Most Holy Body and Blood of Christ (Corpus Christi)','white');
-    if (same(dt,K.ctk)) return out('ChristKing','Our Lord Jesus Christ, King of the Universe','white');
-    return out('OT-'+n,`${ord(n)} Sunday in Ordinary Time`,'green');
-  }
-  if (same(dt,addD(K.pent,19))) return out('SacredHeart','The Most Sacred Heart of Jesus','white');
-  return out('OT-'+n+'-'+dow(dt),`${dayName(dt)} of the ${ord(n)} Week in Ordinary Time`,'green','weekday');
-}
-function dayName(dt){ return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dow(dt)]; }
-
-/* find the date with the same liturgical id in a given calendar year */
-function findInYear(id,y){
-  for (let dt=D(y,1,1); dt.getUTCFullYear()===y; dt=addD(dt,1)){
-    if (liturgy(dt).id===id) return dt;
-  }
-  return null;
-}
-
 /* ---------- sources ---------- */
 const COLORS={green:'var(--green)',violet:'var(--violet)',red:'var(--red)',white:'var(--gold)',rose:'var(--rose)'};
-let sources = [
-  {name:'Bishop Barron — Sunday Sermons', url:'https://www.google.com/search?q={q}+Bishop+Barron+sermon', daily:false, on:true},
-  {name:'Bishop Barron — Daily Gospel Reflection', url:'https://www.wordonfire.org/daily-gospel-reflections/?date={date}', daily:true, on:true},
-  {name:'Fr. Mike Schmitz — Homilies', url:'https://www.google.com/search?q={q}+Fr+Mike+Schmitz+homily', daily:false, on:true},
-  {name:'The Pillar — Sunday School', url:'https://www.google.com/search?q={q}+The+Pillar+%22Sunday+School%22', daily:false, on:true},
-  {name:'Logical Bible Study', url:'https://www.google.com/search?q=%22Logical+Bible+Study%22+{date}', daily:true, on:true},
-  {name:'USCCB readings', url:'https://bible.usccb.org/bible/readings/{usccb}.cfm', daily:true, on:true, readings:true},
-  {name:'Apple Podcasts search', url:'https://podcasts.apple.com/us/search?term={q}+homily', daily:false, on:true},
-  {name:'Spotify search', url:'https://open.spotify.com/search/{q}%20homily', daily:false, on:false},
-  {name:'YouTube search', url:'https://www.youtube.com/results?search_query={q}+homily', daily:false, on:false},
+let data=null; // episodes.json
+const searchSrcs = [
+  {name:'Search Apple Podcasts', url:'https://podcasts.apple.com/us/search?term={q}+homily'},
+  {name:'Search YouTube', url:'https://www.youtube.com/results?search_query={q}+homily'},
+  {name:'Search Google', url:'https://www.google.com/search?q={q}+homily'},
 ];
-function link(src,L,dt){
-  const y=dt.getUTCFullYear(), ds=iso(dt);
-  const usccb=String(dt.getUTCMonth()+1).padStart(2,'0')+String(dt.getUTCDate()).padStart(2,'0')+String(y).slice(2);
-  const title=L.title.replace(/\s*\(.*?\)|\s*—.*$/g,'');
-  return src.url.replace('{title}',encodeURIComponent(title)).replace('{year}',y).replace('{date}',ds)
-    .replace('{usccb}',usccb).replace('{q}',encodeURIComponent(`${title} ${y}`));
-}
+const cleanTitle = t => t.replace(/\s*\(.*?\)|\s*—.*$/g,'');
+function sLink(src,L,dt){ const y=dt.getUTCFullYear(); return src.url.replace('{q}',encodeURIComponent(`${cleanTitle(L.title)} ${y}`)); }
+const usccb = dt => `https://bible.usccb.org/bible/readings/${String(dt.getUTCMonth()+1).padStart(2,'0')}${String(dt.getUTCDate()).padStart(2,'0')}${String(dt.getUTCFullYear()).slice(2)}.cfm`;
+const esc = s => s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const short = dt => dt.toLocaleDateString('en-US',{timeZone:'UTC',month:'short',day:'numeric'});
 
 /* ---------- render ---------- */
 const $=s=>document.querySelector(s);
 let current=new Date(Date.UTC(new Date().getFullYear(),new Date().getMonth(),new Date().getDate()));
 
 function render(){
-  const L=liturgy(current), y=current.getUTCFullYear();
-  document.documentElement.style.setProperty('--season',COLORS[L.color]);
+  const Lt=liturgy(current), y=current.getUTCFullYear();
+  document.documentElement.style.setProperty('--season',COLORS[Lt.color]);
   const span=+$('#span').value;
-  const usccb=sources.find(s=>s.readings);
   $('#day').innerHTML=`
     <div>
       <p class="eyebrow">${fmt(current)}</p>
-      <h2>${L.title}</h2>
+      <h2>${Lt.title}</h2>
       <div class="meta">
-        <span><span class="swatch"></span>${L.color==='white'?'White / gold':L.color[0].toUpperCase()+L.color.slice(1)}</span>
-        <span>Sunday cycle <b>Year ${L.cycle}</b></span>
-        <span>Weekday cycle <b>${L.wk}</b></span>
+        <span><span class="swatch"></span>${Lt.color==='white'?'White / gold':Lt.color[0].toUpperCase()+Lt.color.slice(1)}</span>
+        <span>Sunday cycle <b>Year ${Lt.cycle}</b></span>
+        <span>Weekday cycle <b>${Lt.wk}</b></span>
       </div>
-      ${L.kind==='weekday' ? '<p class="note">This is a weekday, so only daily sources are shown. Sunday homily sources appear when you pick a Sunday or solemnity.</p>' : ''}
+      ${Lt.kind==='weekday' ? '<p class="note">Weekday — only the daily shows publish for this. Pick a Sunday or solemnity for the homily podcasts.</p>' : ''}
     </div>
     <div class="readings">
       <p class="eyebrow">Readings for this date</p>
-      <a href="${link(usccb,L,current)}" target="_blank" rel="noopener">${link(usccb,L,current)}</a>
-      <p class="note">Past years below link to the readings for that year's date, so you'll see the Year ${L.cycle} lectionary again every three years.</p>
+      <a href="${usccb(current)}" target="_blank" rel="noopener">${usccb(current)}</a>
+      <p class="note">Each year below has its own readings link. Year ${Lt.cycle} comes around every three years.</p>
     </div>`;
 
   const rows=[];
   for (let yy=y; yy>=y-span; yy--){
-    const dt=findInYear(L.id,yy);
-    if (!dt){ rows.push(`<div class="year missing"><div class="y">${yy}</div><div class="links">That year's calendar had no ${L.title.replace(/\s*\(.*?\)|\s*—.*$/g,'')} — the week was absorbed by Lent or Advent.</div></div>`); continue; }
+    const dt=findInYear(Lt.id,yy);
+    if (!dt){ rows.push(`<div class="year missing"><div class="y">${yy}</div><div class="links">No ${cleanTitle(Lt.title)} that year — the week was absorbed by Lent or Advent.</div></div>`); continue; }
     const LL=liturgy(dt);
-    const btns=sources.filter(s=>s.on && (s.daily || LL.kind!=='weekday')).map(s=>
-      `<a href="${link(s,LL,dt)}" target="_blank" rel="noopener" class="${s.daily?'daily':''}">${s.name}${yy===y?'':`<span class="t">${dt.toLocaleDateString('en-US',{timeZone:'UTC',month:'short',day:'numeric'})}</span>`}</a>`).join('');
-    rows.push(`<div class="year"><div class="y">${yy}<small>${dt.toLocaleDateString('en-US',{timeZone:'UTC',month:'short',day:'numeric'})} · Year <b>${LL.cycle}</b> · ${LL.wk}</small></div><div class="links">${btns}</div></div>`);
+    const eps = (data && data.byId[Lt.id] && data.byId[Lt.id][yy]) || [];
+    const have = new Set(eps.map(e=>e.s));
+    const cards = eps.map(e=>`<a class="ep" href="${esc(e.u)}" target="_blank" rel="noopener"><span class="who">${esc(data.sources[e.s].name)}</span><span class="ttl">${esc(e.t)}</span><span class="pub">published ${e.p}${e.h==='nextSunday'?' · matched by date':''}</span></a>`).join('');
+    const missing = data ? data.sources.filter((s,i)=>!have.has(i) && (s.kind==='daily' || LL.kind!=='weekday')).map(s=>s.name) : [];
+    const fb = `<div class="fallback"><a href="${usccb(dt)}" target="_blank" rel="noopener">Readings ${short(dt)}</a>${searchSrcs.map(s=>`<a href="${sLink(s,LL,dt)}" target="_blank" rel="noopener">${s.name}</a>`).join('')}${missing.length?`<span class="note" style="font-size:12px;align-self:center">Not in feed: ${esc(missing.join(', '))}</span>`:''}</div>`;
+    rows.push(`<div class="year"><div class="y">${yy}<small>${short(dt)} · Year <b>${LL.cycle}</b> · ${LL.wk}</small></div><div class="links">${cards}${fb}</div></div>`);
   }
   $('#years').innerHTML=rows.join('');
   $('#date').value=iso(current);
 }
 
-function renderSources(){
-  $('#srcs').innerHTML=sources.map((s,i)=>`<div class="src"><label><input type="checkbox" data-i="${i}" ${s.on?'checked':''}> <span>${s.name}<span class="k">${s.daily?'every day':'Sundays & feasts'} · ${s.url.replace(/https?:\/\/(www\.)?/,'').slice(0,40)}…</span></span></label></div>`).join('');
-  $('#srcs').querySelectorAll('input').forEach(cb=>cb.addEventListener('change',e=>{sources[+e.target.dataset.i].on=e.target.checked;render();}));
-}
-
 function fillFeasts(){
   const y=current.getUTCFullYear(); const seen=new Set(); const opts=[];
   for (let dt=D(y,1,1); dt.getUTCFullYear()===y; dt=addD(dt,1)){
-    const L=liturgy(dt); if (L.kind==='weekday' || seen.has(L.id)) continue; seen.add(L.id);
-    opts.push(`<option value="${iso(dt)}">${L.title.replace(/\s*\(.*?\)|\s*—.*$/g,'')} — ${dt.toLocaleDateString('en-US',{timeZone:'UTC',month:'short',day:'numeric'})}</option>`);
+    const Lt=liturgy(dt); if (Lt.kind==='weekday' || seen.has(Lt.id)) continue; seen.add(Lt.id);
+    opts.push(`<option value="${iso(dt)}">${cleanTitle(Lt.title)} — ${short(dt)}</option>`);
   }
   $('#feast').innerHTML='<option value="">Choose…</option>'+opts.join('');
 }
@@ -335,16 +198,17 @@ $('#span').addEventListener('change',render);
 $('#today').addEventListener('click',()=>{const n=new Date();current=D(n.getFullYear(),n.getMonth()+1,n.getDate());render();fillFeasts();});
 document.querySelectorAll('.quick button').forEach(b=>b.addEventListener('click',()=>{
   const n=new Date(); const t=D(n.getFullYear(),n.getMonth()+1,n.getDate());
-  let s=sundayOnOrAfter(t); const off=+b.dataset.off;
-  current = off===-7 ? addD(sundayOnOrBefore(addD(t,-1)),0) : addD(s,off); render(); fillFeasts();
+  const off=+b.dataset.off;
+  current = off===-7 ? sundayOnOrBefore(addD(t,-1)) : addD(sundayOnOrAfter(t),off); render(); fillFeasts();
 }));
-$('#addBtn').addEventListener('click',()=>{
-  const name=$('#addName').value.trim(), url=$('#addUrl').value.trim();
-  if(!name||!url.startsWith('http')){ alert('Give the source a name and a URL template starting with https://'); return; }
-  sources.push({name,url,daily:!!$('#addDaily').value,on:true}); $('#addName').value='';$('#addUrl').value=''; renderSources(); render();
-});
 
-renderSources(); fillFeasts(); render();
+fillFeasts(); render();
+fetch('episodes.json').then(r=>r.ok?r.json():null).then(j=>{
+  data=j;
+  if (j){ const n=j.sources.reduce((a,s)=>a+s.count,0); $('#status').textContent=`${n.toLocaleString()} episodes indexed across ${j.sources.length} shows · refreshed ${j.generated.slice(0,10)}`; }
+  else $('#status').textContent='episodes.json not found yet — run the Refresh episodes action in GitHub. Showing search links only.';
+  render();
+}).catch(()=>{ $('#status').textContent='Could not load episodes.json (if you opened this file directly from your computer, that is expected — it works once hosted).'; });
 </script>
 </body>
 </html>
