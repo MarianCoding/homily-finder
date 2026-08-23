@@ -21,7 +21,7 @@ function parseFeed(xml) {
     link: tag(it, 'link') || attr(it, 'enclosure', 'url') || tag(it, 'guid'),
     audio: attr(it, 'enclosure', 'url'),
     pub: new Date(tag(it, 'pubDate')),
-    desc: tag(it, 'itunes:summary') || tag(it, 'description'),
+    desc: (tag(it, 'itunes:summary') || tag(it, 'description')).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '),
   })).filter(e => e.title && !isNaN(e.pub));
 }
 
@@ -43,6 +43,9 @@ const ORD = { first:1, second:2, third:3, fourth:4, fifth:5, sixth:6, seventh:7,
 const ordNum = s => { s = s.toLowerCase().replace(/\s+/g, '-'); if (ORD[s]) return ORD[s]; const last = s.split('-').pop(); if (ORD[last]) return ORD[last]; const m = s.match(/(\d+)(?:st|nd|rd|th)?$/); return m ? +m[1] : null; };
 
 const FEASTS = [
+  [/gaudete/i, 'Advent-3'], [/laetare/i, 'Lent-4'], [/low sunday|quasimodo/i, 'Easter-2'],
+  [/word of god sunday|sunday of the word of god/i, 'OT-3'], [/good shepherd sunday/i, 'Easter-4'],
+  [/sacred heart/i, 'SacredHeart'],
   [/palm sunday|passion sunday/i, 'PalmSun'], [/pentecost/i, 'Pentecost'], [/trinity/i, 'Trinity'],
   [/corpus christi|body and blood/i, 'CorpusChristi'], [/christ the king|king of the universe/i, 'ChristKing'],
   [/holy family/i, 'HolyFamily'], [/epiphany/i, 'Epiphany'], [/baptism of (the|our) lord/i, 'Baptism'],
@@ -82,10 +85,34 @@ function assign(ep, src) {
     const d = L.addD(pubDay, src.dayOffset || 0);
     return { date: d, lit: L.liturgy(d), how: 'date' };
   }
-  const id = idFromText(ep.title) || idFromText(ep.desc.slice(0, 400));
+  const id = idFromText(ep.title) || idFromText(ep.desc);
   if (id) { const d = dateForId(id, ep.pub); if (d) return { date: d, lit: L.liturgy(d), how: 'title' }; }
   const d = L.sundayOnOrAfter(pubDay);           // fallback: the Sunday this episode precedes
   return { date: d, lit: L.liturgy(d), how: 'nextSunday' };
+}
+
+// Weekly shows publish one episode per Sunday in order. Use title-matched
+// episodes as anchors and re-pin the date-guessed ones between them.
+function repairSequence(list) {
+  list.sort((a, b) => a.ep.pub - b.ep.pub);
+  const nextSun = d => L.sundayOnOrAfter(L.addD(d, 1));
+  // forward: a guessed episode can't land on or before the previous episode's Sunday
+  let last = null;
+  for (const a of list) {
+    if (a.how !== 'title' && last && a.date <= last) { a.date = nextSun(last); a.lit = L.liturgy(a.date); a.how = 'seq'; }
+    if (a.lit.kind !== 'feast' || a.date.getUTCDay?.() === 0 || true) last = a.date > (last||0) ? a.date : last;
+  }
+  // backward: a guessed episode can't land on or after the next anchored episode's Sunday
+  let next = null;
+  for (let i = list.length - 1; i >= 0; i--) {
+    const a = list[i];
+    if (a.how !== 'title' && next && a.date >= next) {
+      const prev = L.sundayOnOrBefore(L.addD(next, -1));
+      if (prev > (list[i-1] ? list[i-1].date : 0)) { a.date = prev; a.lit = L.liturgy(a.date); a.how = 'seq'; }
+    }
+    if (a.how === 'title') next = a.date;
+  }
+  return list;
 }
 
 /* ---------- main ---------- */
@@ -101,11 +128,12 @@ function assign(ep, src) {
     } catch (e) { console.error(`${src.name}: FAILED — ${e.message}`); }
     const idx = out.sources.length;
     out.sources.push({ id: src.id, name: src.name, kind: src.kind, count: eps.length });
-    for (const ep of eps) {
-      const a = assign(ep, src);
+    let assigned = eps.map(ep => ({ ep, ...assign(ep, src) }));
+    if (src.kind === 'sunday') assigned = repairSequence(assigned);
+    for (const a of assigned) {
       const yr = a.date.getUTCFullYear();
       const bucket = ((out.byId[a.lit.id] ||= {})[yr] ||= []);
-      bucket.push({ s: idx, t: ep.title, u: ep.link, a: ep.audio || undefined, d: L.iso(a.date), p: L.iso(ep.pub), h: a.how });
+      bucket.push({ s: idx, t: a.ep.title, u: a.ep.link, a: a.ep.audio || undefined, d: L.iso(a.date), p: L.iso(a.ep.pub), h: a.how });
     }
   }
   // keep old data for any source that failed this run
