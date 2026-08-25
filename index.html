@@ -26,7 +26,7 @@
   .ribbon{background:var(--navy);border-radius:0 0 4px 4px;position:relative;min-height:100%}
   .ribbon:after{content:"";position:absolute;left:0;right:0;bottom:-14px;border-left:14px solid var(--navy);border-right:14px solid var(--navy);border-bottom:14px solid transparent}
   .eyebrow{font-family:var(--body);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--navy);font-weight:600;margin:0 0 8px}
-  h1{font-family:var(--display);font-weight:700;font-size:clamp(32px,5vw,58px);line-height:1.08;margin:0 0 10px;letter-spacing:-.01em}
+  h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,7vw,58px);line-height:1.08;margin:0 0 10px;letter-spacing:-.01em}
   h1 em{font-style:italic;color:var(--navy)}
   .sub{max-width:60ch;color:var(--ink-2);margin:0}
 
@@ -34,11 +34,12 @@
   .mercy{position:relative;margin:0;display:flex;flex-direction:column;align-items:center;gap:10px;padding:0 8px;align-self:center}
   .mercy img{width:168px;border:1px solid var(--rule);box-shadow:0 12px 32px rgba(28,26,23,.22);display:block;position:relative;z-index:1}
   .mercy figcaption{font-family:var(--display);font-style:italic;font-size:16px;color:var(--ink-2);position:relative;z-index:1}
+  .mercy-footer{display:none}
 
   /* controls */
   .controls{display:grid;grid-template-columns:1fr 1fr auto auto;gap:12px;align-items:end;margin:28px 0 8px}
   label.field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500;color:var(--ink-2)}
-  input[type=date],select,input[type=text]{font:inherit;font-size:15px;padding:10px 12px;border:1px solid var(--rule);border-radius:0;background:var(--card);color:var(--ink)}
+  input[type=date],select,input[type=text]{font:inherit;font-size:16px;padding:10px 12px;border:1px solid var(--rule);border-radius:0;background:var(--card);color:var(--ink)}
   input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--season);outline-offset:2px}
   button{font:inherit;font-size:14px;font-weight:600;padding:10px 14px;border-radius:0;border:1px solid var(--navy);background:var(--navy);color:#fff;cursor:pointer}
   button.ghost{background:transparent;color:var(--navy)}
@@ -89,12 +90,22 @@
 
   @media (max-width:820px){
     .hero{grid-template-columns:28px 1fr}
-    .mercy{grid-column:1 / -1;justify-self:center;margin-top:4px}
+    .hero .mercy{display:none}
+    .mercy-footer{display:flex;margin:36px auto 0}
+    .mercy-footer img{width:200px}
+    .topbar{padding:12px 16px;font-size:11px;letter-spacing:.16em}
+    .topbar .motto{font-size:10px;letter-spacing:.2em}
+    .page{padding:24px 16px 60px}
     .controls{grid-template-columns:1fr 1fr}
     .day{grid-template-columns:1fr}
     .year{grid-template-columns:1fr}
     .year .y{display:flex;align-items:baseline;gap:12px}
     .year .y small{margin:0}
+  }
+  @media (max-width:560px){
+    .controls{gap:10px}
+    .controls label.field:nth-child(1),.controls label.field:nth-child(2){grid-column:1 / -1}
+    .hit{grid-template-columns:70px 1fr}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -147,6 +158,10 @@
   <section id="results" aria-live="polite"></section>
   <section class="day" id="day" aria-live="polite"></section>
   <section class="years" id="years"></section>
+  <figure class="mercy mercy-footer">
+    <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Kazimirowski%20Eugeniusz,%20Divine%20Mercy,%201934.jpg?width=360" alt="The Divine Mercy image — Jesus with red and pale rays streaming from His heart (Kazimirowski, 1934)" width="200" loading="lazy">
+    <figcaption>Jesus, I trust in You</figcaption>
+  </figure>
 </div>
 
 <script src="liturgy.js"></script>
