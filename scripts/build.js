@@ -126,9 +126,20 @@ function repairSequence(list) {
   for (const src of sources) {
     let eps = [];
     try {
-      const url = await resolveFeed(src);
-      const xml = await (await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36', 'accept': 'application/rss+xml, application/xml;q=0.9, */*;q=0.8' } })).text();
-      eps = parseFeed(xml);
+      if (src.appleEpisodes) {
+        const j = await (await fetch(`https://itunes.apple.com/lookup?id=${src.appleId}&entity=podcastEpisode&limit=200`)).json();
+        eps = (j.results || []).filter(x => x.kind === 'podcast-episode').map(x => ({
+          title: x.trackName,
+          link: x.trackViewUrl || x.episodeUrl,
+          audio: x.episodeUrl,
+          pub: new Date(x.releaseDate),
+          desc: (x.description || x.shortDescription || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '),
+        })).filter(ep => ep.title && !isNaN(ep.pub));
+      } else {
+        const url = await resolveFeed(src);
+        const xml = await (await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36', 'accept': 'application/rss+xml, application/xml;q=0.9, */*;q=0.8' } })).text();
+        eps = parseFeed(xml);
+      }
       console.log(`${src.name}: ${eps.length} episodes`);
     } catch (e) { console.error(`${src.name}: FAILED — ${e.message}`); }
     const idx = out.sources.length;
