@@ -65,6 +65,10 @@ function idFromText(text) {
   }
   m = t.match(/Sunday\s+(\d+)\s+(?:in|of)\s+(Ordinary Time|Lent|Easter|Advent)/i);
   if (m) return { 'ordinary time':'OT-', lent:'Lent-', easter:'Easter-', advent:'Advent-' }[m[2].toLowerCase()] + m[1];
+  m = t.match(/(\d+(?:st|nd|rd|th)|[A-Za-z]+(?:[\s-][A-Za-z]+)?)\s+Sunday\s+of\s+the\s+Year/i);   // older naming for Ordinary Time
+  if (m) { const n = ordNum(m[1]); if (n) return 'OT-' + n; }
+  m = t.match(/(\d+(?:st|nd|rd|th)|[A-Za-z]+(?:[\s-][A-Za-z]+)?)\s+Week\s+(?:in|of)\s+Ordinary Time/i); // weekly shows sometimes say "Week"
+  if (m && /sunday/i.test(t)) { const n = ordNum(m[1]); if (n) return 'OT-' + n; }
   for (const [re, id] of FEASTS) if (re.test(t)) return id;
   return null;
 }
@@ -87,6 +91,7 @@ function assign(ep, src) {
   }
   const id = idFromText(ep.title) || idFromText(ep.desc);
   if (id) { const d = dateForId(id, ep.pub); if (d) return { date: d, lit: L.liturgy(d), how: 'title' }; }
+  if (src.match === 'strict') return null;       // series/bonus episodes: leave out rather than guess
   const d = L.sundayOnOrAfter(pubDay);           // fallback: the Sunday this episode precedes
   return { date: d, lit: L.liturgy(d), how: 'nextSunday' };
 }
@@ -128,12 +133,17 @@ function repairSequence(list) {
     } catch (e) { console.error(`${src.name}: FAILED — ${e.message}`); }
     const idx = out.sources.length;
     out.sources.push({ id: src.id, name: src.name, kind: src.kind, count: eps.length });
-    let assigned = eps.map(ep => ({ ep, ...assign(ep, src) }));
-    if (src.kind === 'sunday') assigned = repairSequence(assigned);
+    let assigned = [];
+    let skipped = 0;
+    for (const ep of eps) { const a = assign(ep, src); if (a) assigned.push({ ep, ...a }); else skipped++; }
+    if (src.kind === 'sunday' && src.match !== 'strict') assigned = repairSequence(assigned);
+    out.sources[idx].skipped = skipped;
+    if (skipped) console.log(`  (${skipped} episodes had no liturgical day named — left unindexed)`);
     for (const a of assigned) {
       const yr = a.date.getUTCFullYear();
       const bucket = ((out.byId[a.lit.id] ||= {})[yr] ||= []);
-      bucket.push({ s: idx, t: a.ep.title, u: a.ep.link, a: a.ep.audio || undefined, d: L.iso(a.date), p: L.iso(a.ep.pub), h: a.how });
+      const refs = L.extractRefs(a.ep.title + ' ' + a.ep.desc);
+      bucket.push({ s: idx, t: a.ep.title, u: a.ep.link, a: a.ep.audio || undefined, d: L.iso(a.date), p: L.iso(a.ep.pub), h: a.how, r: refs.length ? refs : undefined });
     }
   }
   // keep old data for any source that failed this run
@@ -148,6 +158,37 @@ function repairSequence(list) {
       s.count = old.sources[oi].count; s.stale = true;
     });
   }
+  // enrich with transcripts (if any) and build the full-text search index
+  const crypto = require('crypto');
+  const tdir = path.join(ROOT, 'transcripts');
+  const STOP = new Set(('the a an and or but of to in on at by for with from as is are was were be been being this that these those it its he she his her him they them their we our you your i my me not no so if then than there here what which who whom when where why how all any both each few more most other some such only own same too very can will just do does did doing have has had having would could should about into through during before after above below up down out off over under again further once because while until against amen god lord jesus christ church gospel reading readings today sunday friends us one two three'
+  ).split(' '));
+  const tokenize = t => (t.toLowerCase().match(/[a-z][a-z']{2,}/g) || []).map(w => w.replace(/'/g,''));
+  const index = { words: {}, docs: [] };
+  let transcribed = 0;
+  for (const [id, years] of Object.entries(out.byId))
+    for (const [yr, list] of Object.entries(years))
+      for (const e of list) {
+        if (!e.a) continue;
+        const key = crypto.createHash('md5').update(e.a).digest('hex').slice(0, 12);
+        const tf = path.join(tdir, key + '.txt');
+        if (!fs.existsSync(tf)) continue;
+        const text = fs.readFileSync(tf, 'utf8');
+        e.k = key; transcribed++;
+        const refs = [...L.extractRefs(text), ...L.spokenRefs(text)];
+        const have = new Set((e.r || []).map(r => r.join(',')));
+        for (const r of refs) if (!have.has(r.join(','))) { (e.r ||= []).push(r); have.add(r.join(',')); }
+        const di = index.docs.push([id, yr, list.indexOf(e), key]) - 1;
+        const words = new Set(tokenize(text + ' ' + e.t));
+        for (const w of words) { if (STOP.has(w)) continue; (index.words[w] ||= []).push(di); }
+      }
+  // drop terms that appear in most documents — they don't discriminate
+  const cut = Math.max(20, index.docs.length * 0.6);
+  for (const [w, l] of Object.entries(index.words)) if (l.length > cut) delete index.words[w];
+  fs.writeFileSync(path.join(ROOT, 'searchindex.json'), JSON.stringify(index));
+  out.transcribed = transcribed;
+  console.log(`${transcribed} episodes have transcripts; search index has ${Object.keys(index.words).length} terms`);
+
   fs.writeFileSync(prev, JSON.stringify(out));
   console.log('wrote episodes.json');
 })();
