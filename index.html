@@ -64,20 +64,17 @@
   .ep .pub{font-family:var(--mono);font-size:11px;color:var(--ink-2)}
   .fallback{display:flex;flex-wrap:wrap;gap:6px;width:100%;margin-top:4px}
   .fallback a{font-size:12px;padding:4px 9px}
+  #results{margin:6px 0 26px}
+  #results h3{font-family:var(--display);font-weight:600;font-size:26px;margin:0 0 12px;border-top:1px solid var(--ink);padding-top:16px}
+  .hit{display:grid;grid-template-columns:96px 1fr;gap:14px;padding:10px 0;border-bottom:1px solid var(--rule);align-items:baseline}
+  .hit .d{font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+  .hit .ttl a{font-weight:500;text-decoration:none}
+  .hit .ttl a:hover{text-decoration:underline}
+  .hit .sub{font-size:13px;color:var(--ink-2)}
+  .hit .sub button{border:none;background:none;color:var(--season);padding:0;font-size:13px;text-decoration:underline;cursor:pointer}
   .status{font-family:var(--mono);font-size:12px;color:var(--ink-2);margin:0 0 16px}
   .year.missing{opacity:.55}
   .year.missing .links{font-size:13px;color:var(--ink-2);align-items:center}
-
-  /* sources manager */
-  details{margin-top:40px;border-top:1px solid var(--rule);padding-top:18px}
-  summary{cursor:pointer;font-weight:500}
-  .srcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin:16px 0}
-  .src{border:1px solid var(--rule);border-radius:8px;padding:12px;background:var(--card);font-size:14px}
-  .src label{display:flex;gap:8px;align-items:flex-start;cursor:pointer}
-  .src .k{font-family:var(--mono);font-size:11px;color:var(--ink-2);display:block;margin-top:4px}
-  .add{display:grid;grid-template-columns:1fr 2fr auto auto;gap:10px;align-items:end}
-  .help{font-size:13px;color:var(--ink-2)}
-  .help code{font-family:var(--mono);background:var(--card);border:1px solid var(--rule);padding:1px 5px;border-radius:4px}
 
   @media (max-width:820px){
     .controls{grid-template-columns:1fr 1fr}
@@ -85,7 +82,6 @@
     .year{grid-template-columns:1fr}
     .year .y{display:flex;align-items:baseline;gap:12px}
     .year .y small{margin:0}
-    .add{grid-template-columns:1fr}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -113,6 +109,9 @@
     </label>
     <button id="today" class="ghost" type="button">Today</button>
   </div>
+  <label class="field" style="margin:0 0 10px">Search by Scripture — e.g. <span style="font-family:var(--mono)">Matthew 13:24</span>, <span style="font-family:var(--mono)">Jn 3:16</span>, <span style="font-family:var(--mono)">Wisdom 9</span>, or any words spoken in an episode
+    <input type="text" id="q" placeholder="Type a verse, passage, or keyword and press Enter" autocomplete="off">
+  </label>
   <div class="quick">
     <button type="button" data-off="0">This Sunday</button>
     <button type="button" data-off="7">Next Sunday</button>
@@ -120,9 +119,9 @@
   </div>
 
   <p class="status" id="status">Loading episode index…</p>
+  <section id="results" aria-live="polite"></section>
   <section class="day" id="day" aria-live="polite"></section>
   <section class="years" id="years"></section>
-
 </div>
 
 <script src="liturgy.js"></script>
@@ -135,7 +134,7 @@ const searchSrcs = [
   {name:'Search YouTube', url:'https://www.youtube.com/results?search_query={q}+homily'},
   {name:'Search Google', url:'https://www.google.com/search?q={q}+homily'},
 ];
-const cleanTitle = t => t.replace(/\s*\(.*?\)|\s*—.*$/g,'');
+const cleanTitle = t => t.replace(/\s*\(.*?\)|\s*\u2014.*$/g,'');
 function sLink(src,L,dt){ const y=dt.getUTCFullYear(); return src.url.replace('{q}',encodeURIComponent(`${cleanTitle(L.title)} ${y}`)); }
 const usccb = dt => `https://bible.usccb.org/bible/readings/${String(dt.getUTCMonth()+1).padStart(2,'0')}${String(dt.getUTCDate()).padStart(2,'0')}${String(dt.getUTCFullYear()).slice(2)}.cfm`;
 const esc = s => s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -158,7 +157,7 @@ function render(){
         <span>Sunday cycle <b>Year ${Lt.cycle}</b></span>
         <span>Weekday cycle <b>${Lt.wk}</b></span>
       </div>
-      ${Lt.kind==='weekday' ? '<p class="note">Weekday — only the daily shows publish for this. Pick a Sunday or solemnity for the homily podcasts.</p>' : ''}
+      ${Lt.kind==='weekday' ? '<p class="note">Weekday \u2014 only the daily shows publish for this. Pick a Sunday or solemnity for the homily podcasts.</p>' : ''}
     </div>
     <div class="readings">
       <p class="eyebrow">Readings for this date</p>
@@ -169,14 +168,14 @@ function render(){
   const rows=[];
   for (let yy=y; yy>=y-span; yy--){
     const dt=findInYear(Lt.id,yy);
-    if (!dt){ rows.push(`<div class="year missing"><div class="y">${yy}</div><div class="links">No ${cleanTitle(Lt.title)} that year — the week was absorbed by Lent or Advent.</div></div>`); continue; }
+    if (!dt){ rows.push(`<div class="year missing"><div class="y">${yy}</div><div class="links">No ${cleanTitle(Lt.title)} that year \u2014 the week was absorbed by Lent or Advent.</div></div>`); continue; }
     const LL=liturgy(dt);
     const eps = (data && data.byId[Lt.id] && data.byId[Lt.id][yy]) || [];
     const have = new Set(eps.map(e=>e.s));
-    const cards = eps.map(e=>`<a class="ep" href="${esc(e.u)}" target="_blank" rel="noopener"><span class="who">${esc(data.sources[e.s].name)}</span><span class="ttl">${esc(e.t)}</span><span class="pub">published ${e.p}${e.h==='nextSunday'?' · matched by date':e.h==='seq'?' · matched by sequence':''}</span></a>`).join('');
+    const cards = eps.map(e=>`<a class="ep" href="${esc(e.u)}" target="_blank" rel="noopener"><span class="who">${esc(data.sources[e.s].name)}</span><span class="ttl">${esc(e.t)}</span><span class="pub">published ${e.p}${e.h==='nextSunday'?' \u00b7 matched by date':e.h==='seq'?' \u00b7 matched by sequence':''}</span></a>`).join('');
     const missing = data ? data.sources.filter((s,i)=>!have.has(i) && (s.kind==='daily' || LL.kind!=='weekday')).map(s=>s.name) : [];
     const fb = `<div class="fallback"><a href="${usccb(dt)}" target="_blank" rel="noopener">Readings ${short(dt)}</a>${searchSrcs.map(s=>`<a href="${sLink(s,LL,dt)}" target="_blank" rel="noopener">${s.name}</a>`).join('')}${missing.length?`<span class="note" style="font-size:12px;align-self:center">Not in feed: ${esc(missing.join(', '))}</span>`:''}</div>`;
-    rows.push(`<div class="year"><div class="y">${yy}<small>${short(dt)} · Year <b>${LL.cycle}</b> · ${LL.wk}</small></div><div class="links">${cards}${fb}</div></div>`);
+    rows.push(`<div class="year"><div class="y">${yy}<small>${short(dt)} \u00b7 Year <b>${LL.cycle}</b> \u00b7 ${LL.wk}</small></div><div class="links">${cards}${fb}</div></div>`);
   }
   $('#years').innerHTML=rows.join('');
   $('#date').value=iso(current);
@@ -186,9 +185,9 @@ function fillFeasts(){
   const y=current.getUTCFullYear(); const seen=new Set(); const opts=[];
   for (let dt=D(y,1,1); dt.getUTCFullYear()===y; dt=addD(dt,1)){
     const Lt=liturgy(dt); if (Lt.kind==='weekday' || seen.has(Lt.id)) continue; seen.add(Lt.id);
-    opts.push(`<option value="${iso(dt)}">${cleanTitle(Lt.title)} — ${short(dt)}</option>`);
+    opts.push(`<option value="${iso(dt)}">${cleanTitle(Lt.title)} \u2014 ${short(dt)}</option>`);
   }
-  $('#feast').innerHTML='<option value="">Choose…</option>'+opts.join('');
+  $('#feast').innerHTML='<option value="">Choose\u2026</option>'+opts.join('');
 }
 
 /* ---------- wire up ---------- */
@@ -202,13 +201,74 @@ document.querySelectorAll('.quick button').forEach(b=>b.addEventListener('click'
   current = off===-7 ? sundayOnOrBefore(addD(t,-1)) : addD(sundayOnOrAfter(t),off); render(); fillFeasts();
 }));
 
+let tindex=null, tindexP=null;
+const loadTindex=()=>tindexP ||= fetch('searchindex.json').then(r=>r.ok?r.json():null).then(j=>tindex=j).catch(()=>null);
+async function snippet(key,kws){
+  try{ const t=await (await fetch('transcripts/'+key+'.txt')).text();
+    const low=t.toLowerCase(); let i=-1;
+    for (const k of kws){ i=low.indexOf(k); if(i>=0) break; }
+    if (i<0) return '';
+    const a=Math.max(0,i-110), b=Math.min(t.length,i+170);
+    return (a?'\u2026':'')+t.slice(a,b).trim()+(b<t.length?'\u2026':'');
+  }catch{ return ''; }
+}
+async function runSearch(qtext){
+  const box=$('#results');
+  if (!qtext.trim()){ box.innerHTML=''; return; }
+  if (!data){ box.innerHTML='<h3>Search</h3><p class="note">Episode index not loaded yet.</p>'; return; }
+  const qref=parseQuery(qtext);
+  const kw=qtext.trim().toLowerCase();
+  const kws=(kw.match(/[a-z][a-z']{2,}/g)||[]);
+  const hits=[];
+  const seen=new Set();
+  for (const [id,years] of Object.entries(data.byId))
+    for (const [yr,list] of Object.entries(years))
+      for (const e of list){
+        const byRef = qref && e.r && e.r.some(r=>refMatches(qref,r));
+        const byKw = !qref && kw.length>2 && e.t.toLowerCase().includes(kw);
+        if (byRef||byKw){ hits.push({e,id,yr}); seen.add(id+'|'+yr+'|'+list.indexOf(e)); }
+      }
+  if (!qref && kws.length){                      // full-text over transcripts
+    box.innerHTML='<h3>Searching transcripts\u2026</h3>';
+    await loadTindex();
+    if (tindex){
+      let docSets=kws.map(k=>new Set(tindex.words[k]||[]));
+      let docs=[...docSets[0]].filter(d=>docSets.every(s=>s.has(d)));
+      for (const di of docs){
+        const [id,yr,j]=tindex.docs[di];
+        const e=data.byId[id] && data.byId[id][yr] && data.byId[id][yr][j];
+        if (e && !seen.has(id+'|'+yr+'|'+j)) hits.push({e,id,yr,tx:true});
+      }
+    }
+  }
+  hits.sort((a,b)=> b.e.d.localeCompare(a.e.d));
+  const label = qref ? `${BOOK_LABEL[qref[0]]}${qref[1]?' '+qref[1]:''}${qref[2]?':'+qref[2]:''}${qref[3]?'-'+qref[3]:''}` : `\u201c${qtext.trim()}\u201d`;
+  if (!hits.length){ box.innerHTML=`<h3>Search: ${label}</h3><p class="note">No indexed episodes mention this${qref?' passage':''} yet. Episodes are matched from the verses listed in their titles, show notes, and transcripts \u2014 transcription is still in progress, so a quiet result doesn't mean nobody has preached on it.</p>`; return; }
+  const rows=hits.slice(0,100).map(({e,id,yr})=>{
+    const dt=new Date(e.d+'T00:00:00Z'); const LL=liturgy(dt);
+    const refs=(e.r||[]).slice(0,6).map(r=>`${BOOK_LABEL[r[0]]} ${r[1]}${r[2]?':'+r[2]+(r[3]&&r[3]!==r[2]?'-'+(r[3]===999?'end':r[3]):''):''}`).join(' \u00b7 ');
+    return `<div class="hit"><span class="d">${e.d}</span><span><span class="ttl"><a href="${esc(e.u)}" target="_blank" rel="noopener">${esc(e.t)}</a></span><br><span class="sub">${esc(data.sources[e.s].name)} \u2014 <button data-goto="${e.d}">${cleanTitle(LL.title)} ${yr}</button>${refs?' \u00b7 '+refs:''}</span></span></div>`;
+  }).join('');
+  box.innerHTML=`<h3>Search: ${label} <span style="font-size:14px;font-family:var(--mono);color:var(--ink-2)">${hits.length} episode${hits.length===1?'':'s'}</span></h3>${rows}`;
+  box.querySelectorAll('button[data-goto]').forEach(b=>b.addEventListener('click',()=>{ current=new Date(b.dataset.goto+'T00:00:00Z'); render(); fillFeasts(); $('#day').scrollIntoView?.({behavior:'smooth'}); }));
+  if (!qref && kws.length){                      // fill in transcript context for the top hits
+    hits.slice(0,100).forEach(async ({e},i)=>{
+      if (!e.k) return; const sn=await snippet(e.k,kws); if (!sn) return;
+      const el=box.querySelectorAll('.hit')[i]; if (el) el.insertAdjacentHTML('beforeend',`<span class="sub" style="grid-column:2">\u201c${esc(sn)}\u201d</span>`);
+    });
+  }
+}
+let qtimer=null;
+$('#q').addEventListener('input',e=>{ clearTimeout(qtimer); qtimer=setTimeout(()=>runSearch(e.target.value),250); });
+$('#q').addEventListener('keydown',e=>{ if(e.key==='Enter') runSearch(e.target.value); if(e.key==='Escape'){ e.target.value=''; runSearch(''); }});
+
 fillFeasts(); render();
 fetch('episodes.json').then(r=>r.ok?r.json():null).then(j=>{
   data=j;
-  if (j){ const n=j.sources.reduce((a,s)=>a+s.count,0); $('#status').textContent=`${n.toLocaleString()} episodes indexed across ${j.sources.length} shows · refreshed ${j.generated.slice(0,10)}`; }
-  else $('#status').textContent='episodes.json not found yet — run the Refresh episodes action in GitHub. Showing search links only.';
+  if (j){ const n=j.sources.reduce((a,s)=>a+s.count,0); $('#status').textContent=`${n.toLocaleString()} episodes indexed across ${j.sources.length} shows${j.transcribed?` \u00b7 ${j.transcribed.toLocaleString()} transcribed`:''} \u00b7 refreshed ${j.generated.slice(0,10)}`; }
+  else $('#status').textContent='episodes.json not found yet \u2014 run the Refresh episodes action in GitHub. Showing search links only.';
   render();
-}).catch(()=>{ $('#status').textContent='Could not load episodes.json (if you opened this file directly from your computer, that is expected — it works once hosted).'; });
+}).catch(()=>{ $('#status').textContent='Could not load episodes.json (if you opened this file directly from your computer, that is expected \u2014 it works once hosted).'; });
 </script>
 </body>
 </html>
