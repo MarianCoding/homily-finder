@@ -6,7 +6,7 @@ on:
   workflow_dispatch:        # lets you run it by hand from the Actions tab
 
 concurrency:
-  group: repo-writes
+  group: refresh
   cancel-in-progress: false
 
 permissions:
