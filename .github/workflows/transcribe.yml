@@ -1,0 +1,45 @@
+name: Transcribe episodes
+
+on:
+  schedule:
+    - cron: "30 */6 * * *"   # four batches a day
+  workflow_dispatch:
+    inputs:
+      max:
+        description: "Episodes to transcribe this run"
+        default: "25"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repo-writes
+  cancel-in-progress: false
+
+jobs:
+  transcribe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install faster-whisper
+      - name: Transcribe a batch
+        env:
+          MAX_EPISODES: ${{ github.event.inputs.max || '25' }}
+        run: python scripts/transcribe.py
+      - name: Rebuild index with new transcripts
+        run: node scripts/build.js
+      - name: Commit
+        run: |
+          git config user.name "homily-finder bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add transcripts episodes.json searchindex.json
+          git diff --cached --quiet || git commit -m "Transcribe batch"
+          git pull --rebase origin main
+          git push
