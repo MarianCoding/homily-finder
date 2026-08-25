@@ -1,26 +1,32 @@
 [
   {
     "id": "barron",
-    "name": "Bishop Barron — Sunday Sermons",
+    "name": "Bishop Barron \u2014 Sunday Sermons",
     "feed": "https://feed.podbean.com/wordonfire/feed.xml",
     "kind": "sunday"
   },
   {
     "id": "schmitz",
-    "name": "Fr. Mike Schmitz — Sunday Homilies",
-    "feed": "https://feeds.fireside.fm/fathermikehomilies/rss",
+    "name": "Fr. Mike Schmitz \u2014 Sunday Homilies",
+    "appleId": "273537688",
     "kind": "sunday"
   },
   {
     "id": "pillar",
-    "name": "The Pillar — Sunday School",
+    "name": "The Pillar \u2014 Sunday School",
     "appleId": "1648535494",
     "kind": "sunday"
   },
   {
     "id": "lbs",
-    "name": "Logical Bible Study — Daily Gospel Exegesis",
+    "name": "Logical Bible Study \u2014 Daily Gospel Exegesis",
     "appleId": "1487384040",
+    "kind": "daily"
+  },
+  {
+    "id": "preach",
+    "name": "Preach \u2014 The Catholic Homilies Podcast",
+    "appleId": "1320295636",
     "kind": "daily"
   }
 ]
