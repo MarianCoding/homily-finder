@@ -1,4 +1,4 @@
-# Transcribes podcast episodes listed in episodes.json using Whisper (tiny.en).
+# Transcribes podcast episodes listed in episodes.json using Whisper (small.en).
 # Saves plain-text transcripts to transcripts/<key>.txt where <key> is a short
 # hash of the episode's audio URL. Skips episodes already transcribed.
 # Run by .github/workflows/transcribe.yml — MAX_EPISODES controls batch size.
@@ -34,7 +34,7 @@ if not todo:
 
 from faster_whisper import WhisperModel  # noqa: E402  (import after early exit)
 
-model = WhisperModel("tiny.en", compute_type="int8")
+model = WhisperModel("small.en", compute_type="int8")
 os.makedirs("transcripts", exist_ok=True)
 
 done = 0
