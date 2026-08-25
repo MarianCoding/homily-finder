@@ -127,7 +127,7 @@ function repairSequence(list) {
     let eps = [];
     try {
       const url = await resolveFeed(src);
-      const xml = await (await fetch(url, { headers: { 'user-agent': 'homily-finder/1.0' } })).text();
+      const xml = await (await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36', 'accept': 'application/rss+xml, application/xml;q=0.9, */*;q=0.8' } })).text();
       eps = parseFeed(xml);
       console.log(`${src.name}: ${eps.length} episodes`);
     } catch (e) { console.error(`${src.name}: FAILED — ${e.message}`); }
