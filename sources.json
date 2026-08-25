@@ -14,7 +14,8 @@
   {
     "id": "pillar",
     "name": "The Pillar — Sunday School",
-    "feed": "https://api.allorigins.win/raw?url=https%3A%2F%2Fapi.substack.com%2Ffeed%2Fpodcast%2F228030%2Fs%2F56487.rss",
+    "appleId": "1648535494",
+    "appleEpisodes": true,
     "kind": "sunday"
   },
   {
