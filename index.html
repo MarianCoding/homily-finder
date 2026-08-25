@@ -198,8 +198,9 @@ function render(){
     const eps = (data && data.byId[Lt.id] && data.byId[Lt.id][yy]) || [];
     const have = new Set(eps.map(e=>e.s));
     const cards = eps.map(e=>`<a class="ep" href="${esc(e.u)}" target="_blank" rel="noopener"><span class="who">${esc(data.sources[e.s].name)}</span><span class="ttl">${esc(e.t)}</span><span class="pub">published ${e.p}${e.h==='nextSunday'?' \u00b7 matched by date':e.h==='seq'?' \u00b7 matched by sequence':''}</span></a>`).join('');
-    const missing = data ? data.sources.filter((s,i)=>!have.has(i) && (s.kind==='daily' || LL.kind!=='weekday')).map(s=>s.name) : [];
-    const fb = `<div class="fallback"><a href="${usccb(dt)}" target="_blank" rel="noopener">Readings ${short(dt)}</a>${searchSrcs.map(s=>`<a href="${sLink(s,LL,dt)}" target="_blank" rel="noopener">${s.name}</a>`).join('')}${missing.length?`<span class="note" style="font-size:12px;align-self:center">Not in feed: ${esc(missing.join(', '))}</span>`:''}</div>`;
+    const missing = data ? data.sources.filter((s,i)=>!have.has(i) && (s.kind==='daily' || dt.getUTCDay()===0)).map(s=>s.name) : [];
+    const wkNote = (dt.getUTCDay()!==0 && LL.kind==='feast') ? `<span class="note" style="font-size:12px;align-self:center">Fell on ${dayName(dt)}, ${short(dt)} — Sunday homily shows usually skip weekday feasts.</span>` : '';
+    const fb = `<div class="fallback"><a href="${usccb(dt)}" target="_blank" rel="noopener">Readings ${short(dt)}</a>${searchSrcs.map(s=>`<a href="${sLink(s,LL,dt)}" target="_blank" rel="noopener">${s.name}</a>`).join('')}${wkNote}${missing.length?`<span class="note" style="font-size:12px;align-self:center">Not in feed: ${esc(missing.join(', '))}</span>`:''}</div>`;
     rows.push(`<div class="year"><div class="y">${yy}<small>${short(dt)} \u00b7 Year <b>${LL.cycle}</b> \u00b7 ${LL.wk}</small></div><div class="links">${cards}${fb}</div></div>`);
   }
   $('#years').innerHTML=rows.join('');
