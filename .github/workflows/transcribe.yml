@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
     inputs:
       batches:
-        description: "Batches of 25 episodes to transcribe this run"
-        default: "4"
+        description: "Batches of 10 episodes to transcribe this run"
+        default: "8"
 
 permissions:
   contents: write
@@ -33,11 +33,11 @@ jobs:
         run: |
           git config user.name "homily-finder bot"
           git config user.email "bot@users.noreply.github.com"
-          for i in $(seq 1 ${{ github.event.inputs.batches || '4' }}); do
-            MAX_EPISODES=25 python scripts/transcribe.py
+          for i in $(seq 1 ${{ github.event.inputs.batches || '8' }}); do
+            MAX_EPISODES=10 python scripts/transcribe.py
             node scripts/build.js
             git add transcripts episodes.json searchindex.json
             git diff --cached --quiet || git commit -m "Transcribe batch"
-            git pull --rebase origin main
+            git pull --rebase -X theirs origin main
             git push
           done
