@@ -5,26 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lectionary Finder — homilies &amp; commentary by liturgical date</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --paper:#F7F6F2; --ink:#1C1A17; --ink-2:#4F4A43; --rule:#D9D5CC; --card:#FFFFFF;
-    --green:#2E6B3F; --violet:#5B3A7E; --red:#A3262B; --gold:#B8932F; --rose:#C97C8F; --white:#B8932F;
+    --paper:#F6F5F3; --ink:#1D1D1D; --ink-2:#5C5C5C; --rule:#DDD9D2; --card:#FFFFFF;
+    --navy:#002339; --gold:#C3AD84;
+    --green:#2E6B3F; --violet:#5B3A7E; --red:#8E2430; --rose:#C97C8F; --white:#C3AD84;
     --season:var(--green);
-    --display:"Cormorant Garamond",Georgia,serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --display:"PT Serif",Georgia,serif; --body:"Montserrat",system-ui,sans-serif; --mono:"Montserrat",system-ui,sans-serif;
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
   a{color:inherit}
+  .topbar{background:var(--navy);color:#fff;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 16px;padding:16px 28px;text-transform:uppercase;letter-spacing:.2em;font-size:13px;font-weight:600}
+  .topbar .motto{color:var(--gold);font-size:11px;letter-spacing:.26em;font-weight:500}
   .page{max-width:1180px;margin:0 auto;padding:32px 24px 80px}
 
   /* hero */
   .hero{display:grid;grid-template-columns:28px 1fr auto;gap:28px;margin-bottom:36px}
-  .ribbon{background:var(--season);border-radius:0 0 4px 4px;position:relative;min-height:100%;transition:background .5s ease}
-  .ribbon:after{content:"";position:absolute;left:0;right:0;bottom:-14px;border-left:14px solid var(--season);border-right:14px solid var(--season);border-bottom:14px solid transparent;transition:border-color .5s ease}
-  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);margin:0 0 8px}
-  h1{font-family:var(--display);font-weight:500;font-size:clamp(40px,6vw,72px);line-height:.98;margin:0 0 10px;letter-spacing:-.01em}
-  h1 em{font-style:italic;color:var(--season);transition:color .5s ease}
+  .ribbon{background:var(--navy);border-radius:0 0 4px 4px;position:relative;min-height:100%}
+  .ribbon:after{content:"";position:absolute;left:0;right:0;bottom:-14px;border-left:14px solid var(--navy);border-right:14px solid var(--navy);border-bottom:14px solid transparent}
+  .eyebrow{font-family:var(--body);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--navy);font-weight:600;margin:0 0 8px}
+  h1{font-family:var(--display);font-weight:700;font-size:clamp(32px,5vw,58px);line-height:1.08;margin:0 0 10px;letter-spacing:-.01em}
+  h1 em{font-style:italic;color:var(--navy)}
   .sub{max-width:60ch;color:var(--ink-2);margin:0}
 
   /* Divine Mercy */
@@ -37,14 +40,14 @@
   label.field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500;color:var(--ink-2)}
   input[type=date],select,input[type=text]{font:inherit;font-size:15px;padding:10px 12px;border:1px solid var(--rule);border-radius:6px;background:var(--card);color:var(--ink)}
   input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--season);outline-offset:2px}
-  button{font:inherit;font-size:14px;font-weight:500;padding:10px 14px;border-radius:6px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer}
-  button.ghost{background:transparent;color:var(--ink)}
+  button{font:inherit;font-size:14px;font-weight:600;padding:10px 14px;border-radius:6px;border:1px solid var(--navy);background:var(--navy);color:#fff;cursor:pointer}
+  button.ghost{background:transparent;color:var(--navy)}
   .quick{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 28px}
-  .quick button{padding:6px 10px;font-size:13px;border-color:var(--rule);background:var(--card);color:var(--ink)}
+  .quick button{padding:7px 12px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border-color:var(--rule);background:var(--card);color:var(--navy)}
   .examples{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 22px}
   .examples .try{font-family:var(--mono);font-size:12px;color:var(--ink-2);letter-spacing:.04em}
-  .examples button{padding:5px 10px;font-size:12px;font-family:var(--mono);border:1px dashed var(--rule);background:var(--card);color:var(--ink)}
-  .examples button:hover{border-color:var(--season);color:var(--season)}
+  .examples button{padding:5px 10px;font-size:12px;font-family:var(--mono);border:1px dashed var(--gold);background:var(--card);color:var(--navy)}
+  .examples button:hover{border-color:var(--navy);color:var(--navy)}
 
   /* day card */
   .day{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;padding:24px 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule);margin-bottom:28px}
@@ -98,6 +101,7 @@
 </style>
 </head>
 <body>
+<div class="topbar"><span>Lectionary Finder</span><span class="motto">Jesus, I trust in You</span></div>
 <div class="page">
   <header class="hero">
     <div class="ribbon" aria-hidden="true"></div>
