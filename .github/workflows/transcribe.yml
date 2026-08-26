@@ -34,6 +34,7 @@ jobs:
           git config user.name "homily-finder bot"
           git config user.email "bot@users.noreply.github.com"
           export SKIP_FILE=/tmp/failed-keys.txt
+          export PYTHONUNBUFFERED=1
           for i in $(seq 1 ${{ github.event.inputs.batches || '8' }}); do
             MAX_EPISODES=10 python scripts/transcribe.py
             node scripts/build.js
