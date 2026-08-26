@@ -3,6 +3,10 @@ name: Refresh episodes
 on:
   schedule:
     - cron: "0 10 * * *"   # every day at 10:00 UTC (5am Central)
+  push:                     # and right after new transcripts arrive from the Mac
+    branches: [main]
+    paths:
+      - "transcripts/**"
   workflow_dispatch:        # lets you run it by hand from the Actions tab
 
 concurrency:
