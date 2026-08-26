@@ -1,8 +1,9 @@
 name: Transcribe episodes
 
+# Transcription now happens on Ryan's Mac (large-v3-turbo, far more accurate
+# than small.en, and not blocked by Podbean). This job is kept for emergencies
+# only -- run it by hand from the Actions tab if ever needed.
 on:
-  schedule:
-    - cron: "30 */6 * * *"   # four runs a day
   workflow_dispatch:
     inputs:
       batches:
