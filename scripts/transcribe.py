@@ -10,6 +10,10 @@ import sys
 import urllib.request
 
 MAX = int(os.environ.get("MAX_EPISODES", "25"))
+SKIP_FILE = os.environ.get("SKIP_FILE", "")
+skip_keys = set()
+if SKIP_FILE and os.path.exists(SKIP_FILE):
+    skip_keys = set(open(SKIP_FILE).read().split())
 
 with open("episodes.json") as f:
     eps = json.load(f)
@@ -22,7 +26,7 @@ for years in eps["byId"].values():
             if not url:
                 continue
             key = hashlib.md5(url.encode()).hexdigest()[:12]
-            if key in seen or os.path.exists(f"transcripts/{key}.txt"):
+            if key in seen or key in skip_keys or os.path.exists(f"transcripts/{key}.txt"):
                 continue
             seen.add(key)
             todo.append((e.get("p", ""), key, url))
@@ -40,7 +44,7 @@ os.makedirs("transcripts", exist_ok=True)
 done = 0
 for pub, key, url in todo[:MAX]:
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "homily-finder/1.0"})
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15", "Accept": "*/*"})
         with urllib.request.urlopen(req, timeout=120) as r, open("/tmp/ep.mp3", "wb") as f:
             f.write(r.read())
         segments, _ = model.transcribe("/tmp/ep.mp3", beam_size=1, vad_filter=True)
@@ -54,5 +58,8 @@ for pub, key, url in todo[:MAX]:
         print(f"ok   {key}  {pub}  {url[:70]}")
     except Exception as ex:  # noqa: BLE001 — keep the batch going
         print(f"fail {key}  {ex}")
+        if SKIP_FILE:
+            with open(SKIP_FILE, "a") as sf:
+                sf.write(key + "\n")
 
 print(f"transcribed {done} episodes")
