@@ -45,6 +45,8 @@
   button.ghost{background:transparent;color:var(--navy)}
   .quick{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 28px}
   .quick button{padding:7px 12px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border-color:var(--rule);background:var(--card);color:var(--navy)}
+  .quick button#cycleonly{margin-left:auto}
+  .quick button[aria-pressed="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
   .examples{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 22px}
   .examples .try{font-family:var(--mono);font-size:12px;color:var(--ink-2);letter-spacing:.04em}
   .examples button{padding:5px 10px;font-size:12px;font-family:var(--mono);border:1px dashed var(--gold);background:var(--card);color:var(--navy)}
@@ -134,7 +136,7 @@
       <select id="feast"><option value="">Choose…</option></select>
     </label>
     <label class="field">Years back
-      <select id="span"><option>5</option><option selected>10</option><option>15</option></select>
+      <select id="span"><option>5</option><option selected>10</option><option>15</option><option>20</option><option>30</option></select>
     </label>
     <button id="today" class="ghost" type="button">Today</button>
   </div>
@@ -152,6 +154,7 @@
     <button type="button" data-off="0">This Sunday</button>
     <button type="button" data-off="7">Next Sunday</button>
     <button type="button" data-off="-7">Last Sunday</button>
+    <button type="button" id="cycleonly" aria-pressed="false" title="Show only the years that use these exact same readings">Same readings only</button>
   </div>
 
   <p class="status" id="status">Loading episode index…</p>
@@ -186,6 +189,7 @@ let current=new Date(Date.UTC(new Date().getFullYear(),new Date().getMonth(),new
 
 function render(){
   const Lt=liturgy(current), y=current.getUTCFullYear();
+  const cycleOnly = $('#cycleonly').getAttribute('aria-pressed')==='true';
   document.documentElement.style.setProperty('--season',COLORS[Lt.color]);
   const span=+$('#span').value;
   $('#day').innerHTML=`
@@ -202,11 +206,12 @@ function render(){
     <div class="readings">
       <p class="eyebrow">Readings for this date</p>
       <a href="${usccb(current)}" target="_blank" rel="noopener">${usccb(current)}</a>
-      <p class="note">Each year below has its own readings link. Year ${Lt.cycle} comes around every three years.</p>
+      <p class="note">${cycleOnly ? `Showing only <b>Year ${Lt.cycle}</b> \u2014 the years these exact readings come around. Turn off \u201cSame readings only\u201d to see every year.` : `Each year below has its own readings link. Year ${Lt.cycle} comes around every three years \u2014 use \u201cSame readings only\u201d to jump straight to those.`}</p>
     </div>`;
 
   const rows=[];
-  for (let yy=y; yy>=y-span; yy--){
+  const step = cycleOnly ? 3 : 1;
+  for (let yy=y; yy>=y-span; yy-=step){
     const dt=findInYear(Lt.id,yy);
     if (!dt){ rows.push(`<div class="year missing"><div class="y">${yy}</div><div class="links">No ${cleanTitle(Lt.title)} that year \u2014 the week was absorbed by Lent or Advent.</div></div>`); continue; }
     const LL=liturgy(dt);
@@ -235,8 +240,9 @@ function fillFeasts(){
 $('#date').addEventListener('change',e=>{ if(e.target.value){ current=new Date(e.target.value+'T00:00:00Z'); render(); fillFeasts(); }});
 $('#feast').addEventListener('change',e=>{ if(e.target.value){ current=new Date(e.target.value+'T00:00:00Z'); render(); }});
 $('#span').addEventListener('change',render);
+$('#cycleonly').addEventListener('click',e=>{ const on=e.currentTarget.getAttribute('aria-pressed')==='true'; e.currentTarget.setAttribute('aria-pressed', on?'false':'true'); render(); });
 $('#today').addEventListener('click',()=>{const n=new Date();current=D(n.getFullYear(),n.getMonth()+1,n.getDate());render();fillFeasts();});
-document.querySelectorAll('.quick button').forEach(b=>b.addEventListener('click',()=>{
+document.querySelectorAll('.quick button[data-off]').forEach(b=>b.addEventListener('click',()=>{
   const n=new Date(); const t=D(n.getFullYear(),n.getMonth()+1,n.getDate());
   const off=+b.dataset.off;
   current = off===-7 ? sundayOnOrBefore(addD(t,-1)) : addD(sundayOnOrAfter(t),off); render(); fillFeasts();
