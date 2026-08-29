@@ -39,7 +39,7 @@ jobs:
           for i in $(seq 1 ${{ github.event.inputs.batches || '8' }}); do
             MAX_EPISODES=10 python scripts/transcribe.py
             node scripts/build.js
-            git add transcripts episodes.json searchindex.json
+            git add -A transcripts episodes.json searchindex searchindex.json
             git diff --cached --quiet || git commit -m "Transcribe batch"
             git pull --rebase -X theirs origin main
             git push
