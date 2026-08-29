@@ -196,7 +196,20 @@ function repairSequence(list) {
   // drop terms that appear in most documents — they don't discriminate
   const cut = Math.max(20, index.docs.length * 0.6);
   for (const [w, l] of Object.entries(index.words)) if (l.length > cut) delete index.words[w];
-  fs.writeFileSync(path.join(ROOT, 'searchindex.json'), JSON.stringify(index));
+  // Split the index into per-letter files so a search only downloads what it needs
+  const sdir = path.join(ROOT, 'searchindex');
+  fs.mkdirSync(sdir, { recursive: true });
+  for (const f of fs.readdirSync(sdir)) if (f.endsWith('.json')) fs.unlinkSync(path.join(sdir, f));
+  fs.writeFileSync(path.join(sdir, 'meta.json'), JSON.stringify({ docs: index.docs }));
+  const shards = {};
+  for (const [w, l] of Object.entries(index.words)) {
+    const c = /^[a-z]/.test(w) ? w[0] : '_';
+    (shards[c] ||= {})[w] = l;
+  }
+  for (const [c, obj] of Object.entries(shards))
+    fs.writeFileSync(path.join(sdir, c + '.json'), JSON.stringify(obj));
+  const oldIndex = path.join(ROOT, 'searchindex.json');
+  if (fs.existsSync(oldIndex)) fs.unlinkSync(oldIndex);
   out.transcribed = transcribed;
   console.log(`${transcribed} episodes have transcripts; search index has ${Object.keys(index.words).length} terms`);
 
