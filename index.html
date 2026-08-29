@@ -255,9 +255,9 @@ document.querySelectorAll('.quick button[data-off]').forEach(b=>b.addEventListen
 document.querySelectorAll('.examples button').forEach(b=>b.addEventListener('click',()=>{ const q=b.dataset.q; $('#q').value=q; runSearch(q); }));
 
 let tmeta=null, tmetaP=null; const shardCache={};
-const loadMeta=()=>tmetaP ||= fetch('searchindex/meta.json').then(r=>r.ok?r.json():null).then(j=>tmeta=j).catch(()=>null);
+const loadMeta=()=>tmetaP ||= fetch('searchindex/meta.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(j=>tmeta=j).catch(()=>null);
 const shardOf=w=>/^[a-z]/.test(w)?w[0]:'_';
-const loadShard=c=>shardCache[c] ||= fetch('searchindex/'+c+'.json').then(r=>r.ok?r.json():{}).catch(()=>({}));
+const loadShard=c=>shardCache[c] ||= fetch('searchindex/'+c+'.json',{cache:'no-cache'}).then(r=>r.ok?r.json():{}).catch(()=>({}));
 async function snippet(key,kws){
   try{ const t=await (await fetch('transcripts/'+key+'.txt')).text();
     const low=t.toLowerCase(); let i=-1;
@@ -339,7 +339,7 @@ $('#q').addEventListener('input',e=>{ clearTimeout(qtimer); qtimer=setTimeout(()
 $('#q').addEventListener('keydown',e=>{ if(e.key==='Enter') runSearch(e.target.value); if(e.key==='Escape'){ e.target.value=''; runSearch(''); }});
 
 fillFeasts(); render();
-fetch('episodes.json').then(r=>r.ok?r.json():null).then(j=>{
+fetch('episodes.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(j=>{
   data=j;
   if (j){ const n=j.sources.reduce((a,s)=>a+s.count,0); $('#status').textContent=`${n.toLocaleString()} episodes indexed across ${j.sources.length} shows${j.transcribed?` \u00b7 ${j.transcribed.toLocaleString()} transcribed`:''} \u00b7 refreshed ${j.generated.slice(0,10)}`; }
   else $('#status').textContent='episodes.json not found yet \u2014 run the Refresh episodes action in GitHub. Showing search links only.';
