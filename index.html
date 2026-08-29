@@ -127,7 +127,7 @@
       <p class="sub">Pick a date or a feast. The finder works out where it falls in the liturgical year, then lines up the same day across past years so you can pull several homilies and commentaries on the same readings.</p>
     </div>
     <figure class="mercy">
-      <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Kazimirowski%20Eugeniusz,%20Divine%20Mercy,%201934.jpg?width=360" alt="The Divine Mercy image — Jesus with red and pale rays streaming from His heart (Kazimirowski, 1934)" width="168">
+      <img src="img/divine-mercy.jpg" onerror="this.onerror=null;this.src='https://commons.wikimedia.org/wiki/Special:FilePath/Kazimirowski%20Eugeniusz,%20Divine%20Mercy,%201934.jpg?width=360'" alt="The Divine Mercy image — Jesus with red and pale rays streaming from His heart (Kazimirowski, 1934)" width="168">
       <figcaption>Jesus, I trust in You</figcaption>
     </figure>
   </header>
@@ -166,7 +166,7 @@
   <section class="day" id="day" aria-live="polite"></section>
   <section class="years" id="years"></section>
   <figure class="mercy mercy-footer">
-    <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Kazimirowski%20Eugeniusz,%20Divine%20Mercy,%201934.jpg?width=360" alt="The Divine Mercy image — Jesus with red and pale rays streaming from His heart (Kazimirowski, 1934)" width="200" loading="lazy">
+    <img src="img/divine-mercy.jpg" onerror="this.onerror=null;this.src='https://commons.wikimedia.org/wiki/Special:FilePath/Kazimirowski%20Eugeniusz,%20Divine%20Mercy,%201934.jpg?width=360'" alt="The Divine Mercy image — Jesus with red and pale rays streaming from His heart (Kazimirowski, 1934)" width="200" loading="lazy">
     <figcaption>Jesus, I trust in You</figcaption>
   </figure>
 </div>
@@ -254,8 +254,10 @@ document.querySelectorAll('.quick button[data-off]').forEach(b=>b.addEventListen
 
 document.querySelectorAll('.examples button').forEach(b=>b.addEventListener('click',()=>{ const q=b.dataset.q; $('#q').value=q; runSearch(q); }));
 
-let tindex=null, tindexP=null;
-const loadTindex=()=>tindexP ||= fetch('searchindex.json').then(r=>r.ok?r.json():null).then(j=>tindex=j).catch(()=>null);
+let tmeta=null, tmetaP=null; const shardCache={};
+const loadMeta=()=>tmetaP ||= fetch('searchindex/meta.json').then(r=>r.ok?r.json():null).then(j=>tmeta=j).catch(()=>null);
+const shardOf=w=>/^[a-z]/.test(w)?w[0]:'_';
+const loadShard=c=>shardCache[c] ||= fetch('searchindex/'+c+'.json').then(r=>r.ok?r.json():{}).catch(()=>({}));
 async function snippet(key,kws){
   try{ const t=await (await fetch('transcripts/'+key+'.txt')).text();
     const low=t.toLowerCase(); let i=-1;
@@ -283,12 +285,13 @@ async function runSearch(qtext){
       }
   if (!qref && kws.length){                      // full-text over transcripts
     box.innerHTML='<h3>Searching transcripts\u2026</h3>';
-    await loadTindex();
-    if (tindex){
-      let docSets=kws.map(k=>new Set(tindex.words[k]||[]));
+    await loadMeta();
+    if (tmeta){
+      const maps=await Promise.all(kws.map(k=>loadShard(shardOf(k))));
+      let docSets=kws.map((k,i)=>new Set(maps[i][k]||[]));
       let docs=[...docSets[0]].filter(d=>docSets.every(s=>s.has(d)));
       for (const di of docs){
-        const [id,yr,j]=tindex.docs[di];
+        const [id,yr,j]=tmeta.docs[di];
         const e=data.byId[id] && data.byId[id][yr] && data.byId[id][yr][j];
         if (e && !seen.has(id+'|'+yr+'|'+j)) hits.push({e,id,yr,tx:true});
       }
