@@ -105,6 +105,8 @@
   .epact{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
   .epact button{padding:4px 8px;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--rule);background:var(--card);color:var(--navy);cursor:pointer}
   .epact button:hover{border-color:var(--navy)}
+  button.atlink{margin-left:8px;padding:3px 8px;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--gold);background:var(--card);color:var(--navy);cursor:pointer;white-space:nowrap}
+  button.atlink:hover{border-color:var(--navy)}
   #player{position:fixed;left:0;right:0;bottom:0;background:var(--navy);color:#fff;padding:10px 16px;z-index:50;box-shadow:0 -6px 24px rgba(0,0,0,.25)}
   #player .pwrap{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:14px}
   #pnow{font-size:13px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -295,10 +297,12 @@ async function snippet(key,kws){
   try{ const t=await (await fetch('transcripts/'+key+'.txt')).text();
     const low=t.toLowerCase(); let i=-1;
     for (const k of kws){ i=low.indexOf(k); if(i>=0) break; }
-    if (i<0) return '';
+    if (i<0) return null;
     const a=Math.max(0,i-110), b=Math.min(t.length,i+170);
-    return (a?'\u2026':'')+t.slice(a,b).trim()+(b<t.length?'\u2026':'');
-  }catch{ return ''; }
+    const text=(a?'\u2026':'')+t.slice(a,b).trim()+(b<t.length?'\u2026':'');
+    const marks=await loadTiming(key);
+    return { text, at: secondsAt(marks,i) };
+  }catch{ return null; }
 }
 async function runSearch(qtext){
   const box=$('#results');
@@ -368,16 +372,34 @@ function showPage(){
   if (!qref && kws.length){                      // fill in transcript context for the top hits
     shown.forEach(async ({e},i)=>{
       if (!e.k) return; const sn=await snippet(e.k,kws); if (!sn) return;
-      const el=box.querySelectorAll('.hit')[i]; if (el) el.insertAdjacentHTML('beforeend',`<span class="sub" style="grid-column:2">\u201c${esc(sn)}\u201d</span>`);
+      const el=box.querySelectorAll('.hit')[i]; if (!el) return;
+      const jump = (sn.at!=null && e.a) ? ` <button class="play atlink" data-a="${esc(e.a)}" data-t="${esc(e.t)}" data-at="${sn.at}">\u25b6 Play from ${mmss(sn.at)}</button>` : '';
+      el.insertAdjacentHTML('beforeend',`<span class="sub" style="grid-column:2">\u201c${esc(sn.text)}\u201d${jump}</span>`);
     });
   }
 }
+/* ---------- audio timings ---------- */
+const timeCache={};
+const loadTiming=k=>timeCache[k] ||= fetch('timings/'+k+'.json').then(r=>r.ok?r.json():null).catch(()=>null);
+const mmss=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+function secondsAt(marks,charPos){
+  if(!marks||!marks.length) return null;
+  let lo=0,hi=marks.length-1,best=0;
+  while(lo<=hi){ const mid=(lo+hi)>>1;
+    if(marks[mid][0]<=charPos){ best=mid; lo=mid+1; } else hi=mid-1; }
+  return marks[best][1];
+}
+
 /* ---------- audio player ---------- */
-function playEp(src,title){
+function playEp(src,title,at){
   const el=$('#player'); el.hidden=false;
   $('#pnow').textContent=title;
   const a=$('#paudio');
   if (a.src!==src){ a.src=src; }
+  if (at!=null){
+    const go=()=>{ try{ a.currentTime=at; }catch{} };
+    if (a.readyState>0) go(); else a.addEventListener('loadedmetadata',go,{once:true});
+  }
   a.play().catch(()=>{});
   document.body.style.paddingBottom='72px';
 }
@@ -399,7 +421,7 @@ $('#txmodal').addEventListener('click',e=>{ if(e.target.id==='txmodal') closeTx(
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeTx(); });
 
 document.addEventListener('click',e=>{
-  const p=e.target.closest('button.play'); if(p){ playEp(p.dataset.a,p.dataset.t); return; }
+  const p=e.target.closest('button.play'); if(p){ playEp(p.dataset.a,p.dataset.t,p.dataset.at?+p.dataset.at:null); return; }
   const t=e.target.closest('button.tx');   if(t){ openTx(t.dataset.k,t.dataset.t); }
 });
 
